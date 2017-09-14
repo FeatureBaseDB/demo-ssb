@@ -20,7 +20,7 @@ const indexName = "ssb1"
 
 var Version = "v0.0.0" // demo version
 
-var years = map[int]int{
+var yearMap = map[int]int{
 	1992: 0,
 	1993: 1,
 	1994: 2,
@@ -37,6 +37,8 @@ var regions = map[string]int{
 	"EUROPE":      3,
 	"MIDDLE EAST": 4,
 }
+
+var asiaNations = []string{"INDIA", "INDONESIA", "CHINA", "VIETNAM", "JAPAN"}
 
 // 5 nations per region, in same order as above
 var nations = map[string]int{
@@ -67,7 +69,32 @@ var nations = map[string]int{
 	"EGYPT":          24,
 }
 
+var cities = make(map[string]int)
+var cityIDs = make(map[int]string)
+
+func DefineCityMap() {
+	for nation, nationID := range nations {
+		for j := 0; j < 10; j++ {
+			cityname := fmt.Sprintf("%s%d", PadRight(nation, " ", 9)[0:9], j)
+			cityID := nationID*10 + j
+			cities[cityname] = cityID
+			cityIDs[cityID] = cityname
+			cityID += 1
+		}
+	}
+}
+
+func PadRight(str, pad string, length int) string {
+	for {
+		str += pad
+		if len(str) > length {
+			return str[0:length]
+		}
+	}
+}
+
 func main() {
+	DefineCityMap()
 	pilosaAddr := pflag.String("pilosa", "localhost:10101", "host:port for pilosa")
 	pflag.Parse()
 
@@ -104,7 +131,7 @@ func NewServer(pilosaAddr string) (*Server, error) {
 	router.HandleFunc("/query/3.1", server.HandleQuery31).Methods("GET")
 	router.HandleFunc("/query/3.2", server.HandleQuery32).Methods("GET")
 	router.HandleFunc("/query/3.3", server.HandleQuery33).Methods("GET")
-	router.HandleFunc("/query/3.3", server.HandleQuery34).Methods("GET")
+	router.HandleFunc("/query/3.4", server.HandleQuery34).Methods("GET")
 	router.HandleFunc("/query/4.1", server.HandleQuery41).Methods("GET")
 	router.HandleFunc("/query/4.2", server.HandleQuery42).Methods("GET")
 	router.HandleFunc("/query/4.3", server.HandleQuery43).Methods("GET")
