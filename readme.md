@@ -7,6 +7,8 @@ see https://github.com/pilosa/pdk
 
 `cd demo-ssb`
 
-`go build *.go && main`
+`go build *.go && ./main`
 
-`curl localhost:8000/query/1.1`
+`curl localhost:8000/query/1.1` 
+OR
+`./run_benchmarks.sh`
