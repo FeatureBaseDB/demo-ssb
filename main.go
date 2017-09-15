@@ -158,6 +158,9 @@ func NewServer(pilosaAddr string) (*Server, error) {
 	router.HandleFunc("/query/1.1", server.HandleQuery11).Methods("GET")
 	router.HandleFunc("/query/1.2", server.HandleQuery12).Methods("GET")
 	router.HandleFunc("/query/1.3", server.HandleQuery13).Methods("GET")
+	router.HandleFunc("/query/1.1b", server.HandleQuery11b).Methods("GET")
+	router.HandleFunc("/query/1.2b", server.HandleQuery12b).Methods("GET")
+	router.HandleFunc("/query/1.3b", server.HandleQuery13b).Methods("GET")
 	router.HandleFunc("/query/2.1", server.HandleQuery21).Methods("GET")
 	router.HandleFunc("/query/2.2", server.HandleQuery22).Methods("GET")
 	router.HandleFunc("/query/2.3", server.HandleQuery23).Methods("GET")
@@ -186,8 +189,10 @@ func NewServer(pilosaAddr string) (*Server, error) {
 	// TODO should be automatic from /schema
 	frames := []string{
 		"lo_quantity", // these frames X each have one field, field_X
+		"lo_quantity_b",
 		"lo_extended_price",
 		"lo_discount",
+		"lo_discount_b",
 		"lo_revenue",
 		"lo_supplycost",
 		"lo_profit",
