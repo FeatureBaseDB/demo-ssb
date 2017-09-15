@@ -55,9 +55,9 @@ func (s *Server) HandleQuery21(w http.ResponseWriter, r *http.Request) {
 	sort.Sort(byYearBrandnum(resp))
 	seconds := time.Now().Sub(start).Seconds()
 
-	for _, row := range resp {
-		fmt.Println(row)
-	}
+	//for _, row := range resp {
+	//	fmt.Println(row)
+	//}
 
 	fmt.Printf("query 2.1: %f sec\n", seconds)
 }
@@ -107,9 +107,9 @@ func (s *Server) HandleQuery22(w http.ResponseWriter, r *http.Request) {
 	sort.Sort(byYearBrandnum(resp))
 	seconds := time.Now().Sub(start).Seconds()
 
-	for _, row := range resp {
-		fmt.Println(row)
-	}
+	//for _, row := range resp {
+	//	fmt.Println(row)
+	//}
 
 	fmt.Printf("query 2.2: %f sec\n", seconds)
 }
@@ -152,9 +152,9 @@ func (s *Server) HandleQuery23(w http.ResponseWriter, r *http.Request) {
 	sort.Sort(byYearBrandnum(resp))
 	seconds := time.Now().Sub(start).Seconds()
 
-	for _, row := range resp {
-		fmt.Println(row)
-	}
+	//for _, row := range resp {
+	//	fmt.Println(row)
+	//}
 
 	fmt.Printf("query 2.3: %f sec\n", seconds)
 }
@@ -180,7 +180,8 @@ func (s *Server) RunQuery2(keys <-chan query2Row, rows chan<- query2Row, wg *syn
 		}
 		row := key
 		row.RevenueSum = int(response.Results()[0].Sum)
-		// fmt.Println(response.Results()[0].Sum)
+		//fmt.Println(q)
+		//fmt.Printf("%T %+v\n", response.Results()[0], response.Results()[0])
 		rows <- row
 	}
 }

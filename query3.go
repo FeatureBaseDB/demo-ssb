@@ -58,9 +58,9 @@ func (s *Server) HandleQuery31(w http.ResponseWriter, r *http.Request) {
 	sort.Sort(byYearRevenue(resp))
 	seconds := time.Now().Sub(start).Seconds()
 
-	for _, row := range resp {
-		fmt.Println(row)
-	}
+	//for _, row := range resp {
+	//	fmt.Println(row)
+	//}
 
 	fmt.Printf("query 3.1: %f sec\n", seconds)
 }
@@ -132,9 +132,9 @@ func (s *Server) HandleQuery3City(years, ccities, scities []int, qname string) {
 	sort.Sort(byYearRevenue(resp))
 	seconds := time.Now().Sub(start).Seconds()
 
-	for _, row := range resp {
-		fmt.Println(row)
-	}
+	//for _, row := range resp {
+	//	fmt.Println(row)
+	//}
 
 	fmt.Printf("query %s: %f sec\n", qname, seconds)
 }
@@ -181,9 +181,9 @@ func (s *Server) HandleQuery3CityMonth(yearMonths, ccities, scities []int, qname
 	sort.Sort(byYearRevenue(resp))
 	seconds := time.Now().Sub(start).Seconds()
 
-	for _, row := range resp {
-		fmt.Println(row)
-	}
+	//for _, row := range resp {
+	//	fmt.Println(row)
+	//}
 
 	fmt.Printf("query %s: %f sec\n", qname, seconds)
 }
@@ -194,7 +194,7 @@ func (s *Server) HandleQuery32(w http.ResponseWriter, r *http.Request) {
 	cities := make([]int, 0, 10)
 	for i := cityMin; i < cityMax; i++ {
 		cities = append(cities, i)
-		fmt.Println(i, cityIDs[i])
+		// fmt.Println(i, cityIDs[i])
 	}
 	s.HandleQuery3City(q3years, cities, cities, "3.2")
 }

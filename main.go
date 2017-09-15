@@ -122,7 +122,7 @@ type Server struct {
 
 func (s *Server) HandleTopN(w http.ResponseWriter, r *http.Request) {
 	// sanity check function
-	q := `TopN(frame=lo_year)`
+	q := `TopN(frame=c_city)`
 	fmt.Println(q)
 	response, err := s.Client.Query(s.Index.RawQuery(q), nil)
 	if err != nil {
@@ -134,6 +134,18 @@ func (s *Server) HandleTopN(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) HandleSum(w http.ResponseWriter, r *http.Request) {
+	// sanity check function
+	q := "Sum(frame=lo_discount, field=lo_discount)"
+	fmt.Println(q)
+	response, err := s.Client.Query(s.Index.RawQuery(q), nil)
+	if err != nil {
+		fmt.Printf("%v failed with: %v\n", q, err)
+		return
+	}
+	fmt.Printf("%v %v\n", response.Results()[0].Sum, response.Results()[0].Sum)
+}
+
 func NewServer(pilosaAddr string) (*Server, error) {
 	server := &Server{
 		Frames: make(map[string]*pilosa.Frame),
@@ -142,6 +154,7 @@ func NewServer(pilosaAddr string) (*Server, error) {
 	router := mux.NewRouter()
 	router.HandleFunc("/version", server.HandleVersion).Methods("GET")
 	router.HandleFunc("/query/topn", server.HandleTopN).Methods("GET")
+	router.HandleFunc("/query/sum", server.HandleSum).Methods("GET")
 	router.HandleFunc("/query/1.1", server.HandleQuery11).Methods("GET")
 	router.HandleFunc("/query/1.2", server.HandleQuery12).Methods("GET")
 	router.HandleFunc("/query/1.3", server.HandleQuery13).Methods("GET")

@@ -51,7 +51,7 @@ func (s *Server) SingleSumRaw(q, qname string) {
 		fmt.Printf("%v failed with: %v\n", q, err)
 		return
 	}
-	fmt.Printf("%v\n", response.Results()[0].Sum)
+	// fmt.Printf("%v\n", response.Results()[0].Sum)
 	seconds := time.Now().Sub(start).Seconds()
 	fmt.Printf("%s: %f sec\n", qname, seconds)
 }
