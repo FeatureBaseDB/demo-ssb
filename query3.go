@@ -56,23 +56,23 @@ func (s *Server) HandleQuery31(w http.ResponseWriter, r *http.Request) {
 
 	// order by (year, revenue)
 	sort.Sort(byYearRevenue(resp))
+	seconds := time.Now().Sub(start).Seconds()
 
 	for _, row := range resp {
 		fmt.Println(row)
 	}
 
-	seconds := time.Now().Sub(start).Seconds()
 	fmt.Printf("query 3.1: %f sec\n", seconds)
 }
 
 const q31Fmt = `
 Sum(
 	Intersect(
-		Bitmap(frame="d_year", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="c_nation", rowID=%d),
 		Bitmap(frame="s_nation", rowID=%d)
 	),
-	frame="bsi", field="lo_revenue")`
+	frame="lo_revenue", field="lo_revenue")`
 
 func (s *Server) RunQuery31(keys <-chan query3Row, rows chan<- query3Row, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -130,12 +130,12 @@ func (s *Server) HandleQuery3City(years, ccities, scities []int, qname string) {
 
 	// order by (year, revenue)
 	sort.Sort(byYearRevenue(resp))
+	seconds := time.Now().Sub(start).Seconds()
 
 	for _, row := range resp {
 		fmt.Println(row)
 	}
 
-	seconds := time.Now().Sub(start).Seconds()
 	fmt.Printf("query %s: %f sec\n", qname, seconds)
 }
 
@@ -179,12 +179,12 @@ func (s *Server) HandleQuery3CityMonth(yearMonths, ccities, scities []int, qname
 
 	// order by (year, revenue)
 	sort.Sort(byYearRevenue(resp))
+	seconds := time.Now().Sub(start).Seconds()
 
 	for _, row := range resp {
 		fmt.Println(row)
 	}
 
-	seconds := time.Now().Sub(start).Seconds()
 	fmt.Printf("query %s: %f sec\n", qname, seconds)
 }
 
@@ -237,11 +237,11 @@ func NewQuery34Row(yearMonthID, cCityID, sCityID int, cCity, sCity string) query
 const q32Fmt = `
 Sum(
 	Intersect(
-		Bitmap(frame="d_year", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="c_city", rowID=%d),
 		Bitmap(frame="s_city", rowID=%d)
 	),
-	frame="bsi", field="lo_revenue")`
+	frame="lo_revenue", field="lo_revenue")`
 
 func (s *Server) RunQuery32(keys <-chan query3Row, rows chan<- query3Row, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -261,16 +261,17 @@ func (s *Server) RunQuery32(keys <-chan query3Row, rows chan<- query3Row, wg *sy
 const q34Fmt = `
 Sum(
 	Intersect(
-		Bitmap(frame="d_yearmonth", rowID=%d),
+		Bitmap(frame="lo_year", rowID=5),
+		Bitmap(frame="lo_month", rowID=11),
 		Bitmap(frame="c_city", rowID=%d),
 		Bitmap(frame="s_city", rowID=%d)
 	),
-	frame="bsi", field="lo_revenue")`
+	frame="lo_revenue", field="lo_revenue")`
 
 func (s *Server) RunQuery34(keys <-chan query3Row, rows chan<- query3Row, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for key := range keys {
-		q := fmt.Sprintf(q34Fmt, key.YearMonthID, key.CCityID, key.SCityID)
+		q := fmt.Sprintf(q34Fmt, key.CCityID, key.SCityID)
 		response, err := s.Client.Query(s.Index.RawQuery(q), nil)
 		if err != nil {
 			log.Printf("%v failed with: %v", key, err)

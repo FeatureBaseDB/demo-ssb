@@ -10,41 +10,42 @@ import (
 const q11 = `
 Sum(
 	Intersect(
-		Bitmap(frame="d_year", rowID=1),
-		Range(frame="bsi", lo_discount >= 1),
-		Range(frame="bsi", lo_discount <= 3),
-		Range(frame="bsi", lo_quantity < 25)
+		Bitmap(frame="lo_year", rowID=1),
+		Range(frame="lo_discount", lo_discount >= 1),
+		Range(frame="lo_discount", lo_discount <= 3),
+		Range(frame="lo_quantity", lo_quantity < 25)
 	),
-frame="bsi", field="revenue_computed")`
+frame="lo_revenue_computed", field="lo_revenue_computed")`
 
 // rowID = 24 -> yearmonth=199801
 const q12 = `
 Sum(
 	Intersect(
-		Bitmap(frame="d_yearmonth_id", rowID=24),
-		Range(frame="bsi", lo_discount >= 4),
-		Range(frame="bsi", lo_discount <= 6),
-		Range(frame="bsi", lo_quantity >= 26),
-		Range(frame="bsi", lo_quantity <= 35)
+		Bitmap(frame="lo_year", rowID=6),
+		Bitmap(frame="lo_month", rowID=0),
+		Range(frame="lo_discount", lo_discount >= 4),
+		Range(frame="lo_discount", lo_discount <= 6),
+		Range(frame="lo_quantity", lo_quantity >= 26),
+		Range(frame="lo_quantity", lo_quantity <= 35)
 	),
-frame="bsi", field="revenue_computed")`
+frame="lo_revenue_computed", field="lo_revenue_computed")`
 
 // rowID=2 -> year=1994
 const q13 = `
 Sum(
 	Intersect(
-		Bitmap(frame="d_weeknuminyear", rowID=6),
-		Bitmap(frame="d_year", rowID=2),
-		Range(frame="bsi", lo_discount >= 5),
-		Range(frame="bsi", lo_discount <= 7),
-		Range(frame="bsi", lo_quantity >= 26),
-		Range(frame="bsi", lo_quantity <= 35)
+		Bitmap(frame="lo_weeknum", rowID=6),
+		Bitmap(frame="lo_year", rowID=2),
+		Range(frame="lo_discount", lo_discount >= 5),
+		Range(frame="lo_discount", lo_discount <= 7),
+		Range(frame="lo_quantity", lo_quantity >= 26),
+		Range(frame="lo_quantity", lo_quantity <= 35)
 	),
-frame="bsi", field="revenue_computed")`
+frame="lo_revenue_computed", field="lo_revenue_computed")`
 
 func (s *Server) SingleSumRaw(q, qname string) {
 	start := time.Now()
-	fmt.Println(q)
+	// fmt.Println(q)
 	response, err := s.Client.Query(s.Index.RawQuery(q), nil)
 	if err != nil {
 		fmt.Printf("%v failed with: %v\n", q, err)

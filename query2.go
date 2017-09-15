@@ -53,12 +53,12 @@ func (s *Server) HandleQuery21(w http.ResponseWriter, r *http.Request) {
 
 	// order by (year, brand)
 	sort.Sort(byYearBrandnum(resp))
+	seconds := time.Now().Sub(start).Seconds()
 
 	for _, row := range resp {
 		fmt.Println(row)
 	}
 
-	seconds := time.Now().Sub(start).Seconds()
 	fmt.Printf("query 2.1: %f sec\n", seconds)
 }
 
@@ -105,12 +105,12 @@ func (s *Server) HandleQuery22(w http.ResponseWriter, r *http.Request) {
 
 	// order by (year, brand)
 	sort.Sort(byYearBrandnum(resp))
+	seconds := time.Now().Sub(start).Seconds()
 
 	for _, row := range resp {
 		fmt.Println(row)
 	}
 
-	seconds := time.Now().Sub(start).Seconds()
 	fmt.Printf("query 2.2: %f sec\n", seconds)
 }
 func (s *Server) HandleQuery23(w http.ResponseWriter, r *http.Request) {
@@ -150,28 +150,29 @@ func (s *Server) HandleQuery23(w http.ResponseWriter, r *http.Request) {
 
 	// order by (year, brand)
 	sort.Sort(byYearBrandnum(resp))
+	seconds := time.Now().Sub(start).Seconds()
 
 	for _, row := range resp {
 		fmt.Println(row)
 	}
 
-	seconds := time.Now().Sub(start).Seconds()
 	fmt.Printf("query 2.3: %f sec\n", seconds)
 }
 
 const q2Fmt = `
 Sum(
 	Intersect(
-		Bitmap(frame="d_year", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="p_brand1", rowID=%d),
 		Bitmap(frame="s_region", rowID=%d)
 	),
-	frame="bsi", field="lo_revenue")`
+	frame="lo_revenue", field="lo_revenue")`
 
 func (s *Server) RunQuery2(keys <-chan query2Row, rows chan<- query2Row, wg *sync.WaitGroup, region int) {
 	defer wg.Done()
 	for key := range keys {
 		q := fmt.Sprintf(q2Fmt, key.YearID, key.BrandID, region)
+		// fmt.Println(q)
 		response, err := s.Client.Query(s.Index.RawQuery(q), nil)
 		if err != nil {
 			log.Printf("%v failed with: %v", key, err)
@@ -179,6 +180,7 @@ func (s *Server) RunQuery2(keys <-chan query2Row, rows chan<- query2Row, wg *syn
 		}
 		row := key
 		row.RevenueSum = int(response.Results()[0].Sum)
+		// fmt.Println(response.Results()[0].Sum)
 		rows <- row
 	}
 }

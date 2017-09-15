@@ -12,22 +12,23 @@ import (
 
 	"github.com/gorilla/mux"
 	pilosa "github.com/pilosa/go-pilosa"
+	// ssb "github.com/pilosa/pdk/ssb"
 	"github.com/spf13/pflag"
 )
 
-const host = ":10101"
-const indexName = "ssb1"
+const host = "node0.bio6.sandbox.pilosa.com:10101"
+const indexName = "ssb"
 
 var Version = "v0.0.0" // demo version
 
 var yearMap = map[int]int{
-	1992: 0,
-	1993: 1,
-	1994: 2,
-	1995: 3,
-	1996: 4,
-	1997: 5,
-	1998: 6,
+	1992: 1992,
+	1993: 1993,
+	1994: 1994,
+	1995: 1995,
+	1996: 1996,
+	1997: 1997,
+	1998: 1998,
 }
 
 var regions = map[string]int{
@@ -38,6 +39,7 @@ var regions = map[string]int{
 	"MIDDLE EAST": 4,
 }
 
+var americaNations = []string{"CANADA", "ARGENTINA", "BRAZIL", "UNITED STATES", "PERU"}
 var asiaNations = []string{"INDIA", "INDONESIA", "CHINA", "VIETNAM", "JAPAN"}
 
 // 5 nations per region, in same order as above
@@ -95,14 +97,17 @@ func PadRight(str, pad string, length int) string {
 
 func main() {
 	DefineCityMap()
-	pilosaAddr := pflag.String("pilosa", "localhost:10101", "host:port for pilosa")
+	//translator = ssb.NewTranslator("ssdbmapping")
+	//fmt.Println(translator)
+	//fmt.Println(translator.Get("c_city", 0))
+	//return
+	pilosaAddr := pflag.String("pilosa", host, "host:port for pilosa")
 	pflag.Parse()
 
 	server, err := NewServer(*pilosaAddr)
 	if err != nil {
 		log.Fatalf("getting new server: %v", err)
 	}
-	//server.testQuery()
 	fmt.Printf("lineorder count: %d\n", server.NumLineOrders)
 	server.Serve()
 }
@@ -115,6 +120,20 @@ type Server struct {
 	NumLineOrders uint64
 }
 
+func (s *Server) HandleTopN(w http.ResponseWriter, r *http.Request) {
+	// sanity check function
+	q := `TopN(frame=lo_year)`
+	fmt.Println(q)
+	response, err := s.Client.Query(s.Index.RawQuery(q), nil)
+	if err != nil {
+		fmt.Printf("%v failed with: %v\n", q, err)
+		return
+	}
+	for a, b := range response.Results()[0].CountItems {
+		fmt.Printf("%v %v\n", a, b)
+	}
+}
+
 func NewServer(pilosaAddr string) (*Server, error) {
 	server := &Server{
 		Frames: make(map[string]*pilosa.Frame),
@@ -122,6 +141,7 @@ func NewServer(pilosaAddr string) (*Server, error) {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/version", server.HandleVersion).Methods("GET")
+	router.HandleFunc("/query/topn", server.HandleTopN).Methods("GET")
 	router.HandleFunc("/query/1.1", server.HandleQuery11).Methods("GET")
 	router.HandleFunc("/query/1.2", server.HandleQuery12).Methods("GET")
 	router.HandleFunc("/query/1.3", server.HandleQuery13).Methods("GET")
@@ -152,11 +172,13 @@ func NewServer(pilosaAddr string) (*Server, error) {
 
 	// TODO should be automatic from /schema
 	frames := []string{
-		"lo_quantity",
+		"lo_quantity", // these frames X each have one field, field_X
 		"lo_extended_price",
 		"lo_discount",
 		"lo_revenue",
 		"lo_supplycost",
+		"lo_profit",
+		"lo_revenue_computed",
 		"c_city",
 		"c_nation",
 		"c_region",
@@ -166,9 +188,9 @@ func NewServer(pilosaAddr string) (*Server, error) {
 		"p_mfgr",
 		"p_category",
 		"p_brand1",
-		"d_year_id",      // 'id' becuase mapping 1992-1998 -> 0-6
-		"d_yearmonth_id", // 'id' because mapping (1992-1998, 1-12) -> 0-83
-		"d_weeknum",
+		"lo_year",
+		"lo_month",
+		"lo_weeknum",
 	}
 
 	for _, frameName := range frames {
@@ -224,23 +246,6 @@ func getPilosaVersion() string {
 	version := new(versionResponse)
 	json.Unmarshal(body, &version)
 	return version.Version
-}
-
-func (s *Server) testQuery() error {
-	// Send a Bitmap query. PilosaException is thrown if execution of the query fails.
-	response, err := s.Client.Query(s.Frames["pickup_year"].Bitmap(2013), nil)
-	if err != nil {
-		return fmt.Errorf("s.Client.Query: %v", err)
-	}
-
-	// Get the result
-	result := response.Result()
-	// Act on the result
-	if result != nil {
-		bits := result.Bitmap.Bits
-		fmt.Printf("Got bits: %v\n", bits)
-	}
-	return nil
 }
 
 func (s *Server) Serve() {
