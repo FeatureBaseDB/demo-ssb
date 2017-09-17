@@ -16,9 +16,6 @@ import (
 	"github.com/spf13/pflag"
 )
 
-const host = "node0.bio6.sandbox.pilosa.com:10101"
-const indexName = "ssb"
-
 var Version = "v0.0.0" // demo version
 
 var yearMap = map[int]int{
@@ -101,10 +98,11 @@ func main() {
 	//fmt.Println(translator)
 	//fmt.Println(translator.Get("c_city", 0))
 	//return
-	pilosaAddr := pflag.String("pilosa", host, "host:port for pilosa")
+	pilosaAddr := pflag.StringP("pilosa", "p", "localhost:10101", "host:port for pilosa")
+	index := pflag.StringP("index", "i", "ssb", "pilosa index")
 	pflag.Parse()
 
-	server, err := NewServer(*pilosaAddr)
+	server, err := NewServer(*pilosaAddr, *index)
 	if err != nil {
 		log.Fatalf("getting new server: %v", err)
 	}
@@ -113,6 +111,7 @@ func main() {
 }
 
 type Server struct {
+	pilosaAddr    string
 	Router        *mux.Router
 	Client        *pilosa.Client
 	Index         *pilosa.Index
@@ -146,7 +145,7 @@ func (s *Server) HandleSum(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("%v %v\n", response.Results()[0].Sum, response.Results()[0].Sum)
 }
 
-func NewServer(pilosaAddr string) (*Server, error) {
+func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	server := &Server{
 		Frames: make(map[string]*pilosa.Frame),
 	}
@@ -247,7 +246,7 @@ func (s *Server) HandleVersion(w http.ResponseWriter, r *http.Request) {
 		PilosaVersion string `json:"pilosaversion"`
 	}{
 		DemoVersion:   Version,
-		PilosaVersion: getPilosaVersion(),
+		PilosaVersion: getPilosaVersion(s.pilosaAddr),
 	}); err != nil {
 		log.Printf("write version response error: %s", err)
 	}
@@ -257,7 +256,7 @@ type versionResponse struct {
 	Version string `json:"version"`
 }
 
-func getPilosaVersion() string {
+func getPilosaVersion(host string) string {
 	resp, _ := http.Get("http://" + host + "/version")
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
