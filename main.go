@@ -106,6 +106,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("getting new server: %v", err)
 	}
+	fmt.Printf("Pilosa: %s\nIndex: %s\n", *pilosaAddr, *index)
 	fmt.Printf("lineorder count: %d\n", server.NumLineOrders)
 	server.Serve()
 }
@@ -266,6 +267,6 @@ func getPilosaVersion(host string) string {
 }
 
 func (s *Server) Serve() {
-	fmt.Println("running at http://127.0.0.1:8000")
+	fmt.Println("Demo running at http://127.0.0.1:8000")
 	log.Fatal(http.ListenAndServe(":8000", s.Router))
 }

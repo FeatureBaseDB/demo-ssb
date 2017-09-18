@@ -7,7 +7,7 @@ see https://github.com/pilosa/pdk
 
 `cd demo-ssb`
 
-`go build *.go && ./main`
+`go build *.go && ./main -p node0.your.pilosa.cluster:10101 -i ssb`
 
 `curl localhost:8000/query/1.1` 
 OR
