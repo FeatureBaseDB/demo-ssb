@@ -102,12 +102,14 @@ func main() {
 	//return
 	pilosaAddr := pflag.StringP("pilosa", "p", "localhost:10101", "host:port for pilosa")
 	index := pflag.StringP("index", "i", "ssb", "pilosa index")
+	concurrency := pflag.IntP("concurrency", "c", 32, "number of queries to execute in parallel")
 	pflag.Parse()
 
 	server, err := NewServer(*pilosaAddr, *index)
 	if err != nil {
 		log.Fatalf("getting new server: %v", err)
 	}
+	server.concurrency = concurrency
 	fmt.Printf("Pilosa: %s\nIndex: %s\n", *pilosaAddr, *index)
 	fmt.Printf("lineorder count: %d\n", server.NumLineOrders)
 	server.Serve()
@@ -119,6 +121,7 @@ type Server struct {
 	Client        *pilosa.Client
 	Index         *pilosa.Index
 	Frames        map[string]*pilosa.Frame
+	concurrency   int
 	NumLineOrders uint64
 }
 
@@ -150,7 +153,8 @@ func (s *Server) HandleSum(w http.ResponseWriter, r *http.Request) {
 
 func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	server := &Server{
-		Frames: make(map[string]*pilosa.Frame),
+		Frames:      make(map[string]*pilosa.Frame),
+		concurrency: 1,
 	}
 
 	router := mux.NewRouter()

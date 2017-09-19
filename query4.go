@@ -13,7 +13,6 @@ var q4years = []int{1997, 1998}
 
 func (s *Server) HandleQuery41(w http.ResponseWriter, r *http.Request) {
 	iterations := 35
-	concurrency := 32
 	start := time.Now()
 
 	keys := make(chan query4Row)
@@ -30,7 +29,7 @@ func (s *Server) HandleQuery41(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var wg = &sync.WaitGroup{}
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < s.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			s.RunQuery41(keys, rows, wg)
@@ -58,7 +57,6 @@ func (s *Server) HandleQuery41(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) HandleQuery42(w http.ResponseWriter, r *http.Request) {
 	iterations := 100
-	concurrency := 32
 	start := time.Now()
 	keys := make(chan query4Row)
 	rows := make(chan query4Row)
@@ -76,7 +74,7 @@ func (s *Server) HandleQuery42(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var wg = &sync.WaitGroup{}
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < s.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			s.RunQuery42(keys, rows, wg)
@@ -104,7 +102,6 @@ func (s *Server) HandleQuery42(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) HandleQuery43(w http.ResponseWriter, r *http.Request) {
 	iterations := 800
-	concurrency := 32
 	start := time.Now()
 
 	keys := make(chan query4Row)
@@ -122,7 +119,7 @@ func (s *Server) HandleQuery43(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var wg = &sync.WaitGroup{}
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < s.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			s.RunQuery42(keys, rows, wg)

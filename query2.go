@@ -15,7 +15,6 @@ import (
 
 func (s *Server) HandleQuery21(w http.ResponseWriter, r *http.Request) {
 	iterations := 280
-	concurrency := 32
 
 	start := time.Now()
 	keys := make(chan query2Row)
@@ -35,7 +34,7 @@ func (s *Server) HandleQuery21(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var wg = &sync.WaitGroup{}
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < s.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			s.RunQuery2(keys, rows, wg, regions["AMERICA"])
@@ -64,7 +63,6 @@ func (s *Server) HandleQuery21(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleQuery22(w http.ResponseWriter, r *http.Request) {
 	iterations := 56
-	concurrency := 32
 
 	start := time.Now()
 	keys := make(chan query2Row)
@@ -87,7 +85,7 @@ func (s *Server) HandleQuery22(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var wg = &sync.WaitGroup{}
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < s.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			s.RunQuery2(keys, rows, wg, regions["ASIA"])
@@ -115,7 +113,6 @@ func (s *Server) HandleQuery22(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) HandleQuery23(w http.ResponseWriter, r *http.Request) {
 	iterations := 7
-	concurrency := 7
 
 	start := time.Now()
 	keys := make(chan query2Row)
@@ -132,7 +129,7 @@ func (s *Server) HandleQuery23(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var wg = &sync.WaitGroup{}
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < s.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			s.RunQuery2(keys, rows, wg, regions["EUROPE"])

@@ -17,7 +17,6 @@ var q3years = []int{1992, 1993, 1994, 1995, 1996, 1997}
 
 func (s *Server) HandleQuery31(w http.ResponseWriter, r *http.Request) {
 	iterations := 150
-	concurrency := 32
 	start := time.Now()
 
 	keys := make(chan query3Row)
@@ -38,7 +37,7 @@ func (s *Server) HandleQuery31(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var wg = &sync.WaitGroup{}
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < s.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			s.RunQuery31(keys, rows, wg)
@@ -91,7 +90,6 @@ func (s *Server) RunQuery31(keys <-chan query3Row, rows chan<- query3Row, wg *sy
 
 func (s *Server) HandleQuery3City(years, ccities, scities []int, qname string) {
 	iterations := len(years) * len(ccities) * len(scities)
-	concurrency := 32
 	start := time.Now()
 
 	keys := make(chan query3Row)
@@ -112,7 +110,7 @@ func (s *Server) HandleQuery3City(years, ccities, scities []int, qname string) {
 	}()
 
 	var wg = &sync.WaitGroup{}
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < s.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			s.RunQuery32(keys, rows, wg)
@@ -141,7 +139,6 @@ func (s *Server) HandleQuery3City(years, ccities, scities []int, qname string) {
 
 func (s *Server) HandleQuery3CityMonth(yearMonths, ccities, scities []int, qname string) {
 	iterations := len(yearMonths) * len(ccities) * len(scities)
-	concurrency := 4
 	start := time.Now()
 
 	keys := make(chan query3Row)
@@ -161,7 +158,7 @@ func (s *Server) HandleQuery3CityMonth(yearMonths, ccities, scities []int, qname
 	}()
 
 	var wg = &sync.WaitGroup{}
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < s.concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			s.RunQuery34(keys, rows, wg)
