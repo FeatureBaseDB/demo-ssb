@@ -167,7 +167,6 @@ func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	router.HandleFunc("/query/1.1c", server.HandleQuery11c).Methods("GET")
 	router.HandleFunc("/query/1.2c", server.HandleQuery12c).Methods("GET")
 	router.HandleFunc("/query/1.3c", server.HandleQuery13c).Methods("GET")
-	router.HandleFunc("/query/2.1b", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/2.1", server.HandleQuery21New).Methods("GET")
 	router.HandleFunc("/query/2.2", server.HandleQuery22New).Methods("GET")
 	router.HandleFunc("/query/2.3", server.HandleQuery23New).Methods("GET")
@@ -197,7 +196,7 @@ func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	frames := []string{
 		"lo_quantity", // these frames X each have one field, field_X
 		"lo_quantity_b",
-		"lo_extended_price",
+		"lo_extendedprice",
 		"lo_discount",
 		"lo_discount_b",
 		"lo_revenue",
