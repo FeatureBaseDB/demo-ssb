@@ -109,7 +109,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("getting new server: %v", err)
 	}
-	server.concurrency = concurrency
+	server.concurrency = *concurrency
 	fmt.Printf("Pilosa: %s\nIndex: %s\n", *pilosaAddr, *index)
 	fmt.Printf("lineorder count: %d\n", server.NumLineOrders)
 	server.Serve()
