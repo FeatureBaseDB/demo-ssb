@@ -101,6 +101,8 @@ func main() {
 	//fmt.Println(translator.Get("c_city", 0))
 	//return
 	pilosaAddr := pflag.StringP("pilosa", "p", "localhost:10101", "host:port for pilosa")
+	concurrency := pflag.IntP("concurrency", "c", 32, "number of queries to execute in parallel")
+	batchSize := pflag.IntP("batchsize", "b", 1, "number of queries to combine into a single batch request")
 	index := pflag.StringP("index", "i", "ssb", "pilosa index")
 	pflag.Parse()
 
@@ -108,6 +110,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("getting new server: %v", err)
 	}
+	server.concurrency = *concurrency
+	server.batchSize = *batchSize
 	fmt.Printf("Pilosa: %s\nIndex: %s\n", *pilosaAddr, *index)
 	fmt.Printf("lineorder count: %d\n", server.NumLineOrders)
 	server.Serve()
@@ -119,6 +123,8 @@ type Server struct {
 	Client        *pilosa.Client
 	Index         *pilosa.Index
 	Frames        map[string]*pilosa.Frame
+	concurrency   int
+	batchSize     int
 	NumLineOrders uint64
 }
 
@@ -150,7 +156,8 @@ func (s *Server) HandleSum(w http.ResponseWriter, r *http.Request) {
 
 func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	server := &Server{
-		Frames: make(map[string]*pilosa.Frame),
+		Frames:      make(map[string]*pilosa.Frame),
+		concurrency: 1,
 	}
 
 	router := mux.NewRouter()
@@ -158,26 +165,25 @@ func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	router.HandleFunc("/query/topn", server.HandleTopN).Methods("GET")
 	router.HandleFunc("/query/sum", server.HandleSum).Methods("GET")
 	router.HandleFunc("/query/test", server.HandleTestQuery).Methods("GET")
-	router.HandleFunc("/query/1.1", server.HandleQuery11).Methods("GET")
-	router.HandleFunc("/query/1.2", server.HandleQuery12).Methods("GET")
-	router.HandleFunc("/query/1.3", server.HandleQuery13).Methods("GET")
+	router.HandleFunc("/query/1.1", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/1.2", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/1.3", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/1.1b", server.HandleQuery11b).Methods("GET")
 	router.HandleFunc("/query/1.2b", server.HandleQuery12b).Methods("GET")
 	router.HandleFunc("/query/1.3b", server.HandleQuery13b).Methods("GET")
-	router.HandleFunc("/query/1.1c", server.HandleQuery11c).Methods("GET")
-	router.HandleFunc("/query/1.2c", server.HandleQuery12c).Methods("GET")
-	router.HandleFunc("/query/1.3c", server.HandleQuery13c).Methods("GET")
-	router.HandleFunc("/query/2.1b", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/2.1", server.HandleQuery21New).Methods("GET")
-	router.HandleFunc("/query/2.2", server.HandleQuery22New).Methods("GET")
-	router.HandleFunc("/query/2.3", server.HandleQuery23New).Methods("GET")
-	router.HandleFunc("/query/3.1", server.HandleQuery31New).Methods("GET")
-	router.HandleFunc("/query/3.2", server.HandleQuery32New).Methods("GET")
-	router.HandleFunc("/query/3.3", server.HandleQuery33New).Methods("GET")
-	router.HandleFunc("/query/3.4", server.HandleQuery34New).Methods("GET")
-	router.HandleFunc("/query/4.1", server.HandleQuery41New).Methods("GET")
-	router.HandleFunc("/query/4.2", server.HandleQuery42New).Methods("GET")
-	router.HandleFunc("/query/4.3", server.HandleQuery43New).Methods("GET")
+	router.HandleFunc("/query/1.1c", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/1.2c", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/1.3c", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/2.1", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/2.2", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/2.3", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/3.1", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/3.2", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/3.3", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/3.4", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/4.1", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/4.2", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/4.3", server.HandleQuery).Methods("GET")
 
 	pilosaURI, err := pilosa.NewURIFromAddress(pilosaAddr)
 	if err != nil {

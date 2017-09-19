@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -34,6 +36,14 @@ func UnravelIndex(index1 int, dim []int) []int {
 		denom *= dim[n]
 	}
 	return indexN
+}
+
+type BenchmarkResult struct {
+	Name        string  `json:"name"`
+	Iterations  int     `json:"iterations"`
+	Concurrency int     `json:"concurrency"`
+	BatchSize   int     `json:"batchsize"`
+	Seconds     float64 `json:"seconds"`
 }
 
 // QuerySet encapsulates a small amount of information necessary for
@@ -105,114 +115,23 @@ func (s *QuerySet) QueryResultN(n int) QueryResult {
 	return qr
 }
 
-// RunSumBatch collects all queries in a QuerySet into a single batch call, and sends to the cluster.
-func (s *Server) RunSumBatch(qs QuerySet) {
-	qBatch := ""
-	for n := 0; n < qs.iterations; n++ {
-		q := qs.QueryN(n)
-		qBatch += q
-	}
-
-	start := time.Now()
-	response, err := s.Client.Query(s.Index.RawQuery(qBatch), nil)
-	if err != nil {
-		fmt.Printf("batch query failed with: %v", err)
-	}
-	// TODO sort
-
-	fmt.Printf("response: %T\n", response) // gotta do somethin'
-	//for n, res := range response.Results() {
-	//	fmt.Println(res.Sum)
-	//}
-	seconds := time.Now().Sub(start).Seconds()
-	fmt.Printf("query %s batch: %d iterations, %f sec\n", qs.Name, qs.iterations, seconds)
-}
-
-func (s *Server) RunSumBatchSortable(qs QuerySet) {
-	qBatch := ""
-	qrs := make([]QueryResult, qs.iterations)
-	for n := 0; n < qs.iterations; n++ {
-		qrs[n] = qs.QueryResultN(n)
-		qBatch += qrs[n].raw
-	}
-
-	start := time.Now()
-	response, err := s.Client.Query(s.Index.RawQuery(qBatch), nil)
-	if err != nil {
-		fmt.Printf("batch query failed with: %v", err)
-	}
-
-	fmt.Printf("response: %T\n", response) // gotta do somethin'
-	for n, res := range response.Results() {
-		qrs[n].outputs[0] = res.Sum
-		// fmt.Println(res.Sum)
-	}
-	// TODO sort
-
-	seconds := time.Now().Sub(start).Seconds()
-	fmt.Printf("query %s batch: %d iterations, %f sec\n", qs.Name, qs.iterations, seconds)
-}
-
-// RunSumConcurrent sends each query in a QuerySet to the cluster concurrently, using runRawSumQuery().
-func (s *Server) RunSumConcurrent(qs QuerySet, concurrency int) {
-	queries := make(chan string)
-	results := make(chan int)
-	go func() {
-		for n := 0; n < qs.iterations; n++ {
-			queries <- qs.QueryN(n)
-		}
-		close(queries)
-	}()
-
-	var wg = &sync.WaitGroup{}
-	start := time.Now()
-	for n := 0; n < concurrency; n++ {
-		wg.Add(1)
-		go func() {
-			s.runRawSumQuery(queries, results, wg)
-		}()
-	}
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-	// TODO sort
-
-	for res := range results {
-		fmt.Println(res)
-	}
-	seconds := time.Now().Sub(start).Seconds()
-
-	fmt.Printf("query %s concurrent(%d): %d iterations, %f sec\n", qs.Name, concurrency, qs.iterations, seconds)
-
-}
-
-// runRawSumQuery sends one RawQuery to the cluster, then sends the Sum from the result to a result channel
-func (s *Server) runRawSumQuery(queries <-chan string, results chan<- int, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for q := range queries {
-		response, err := s.Client.Query(s.Index.RawQuery(q), nil)
-		if err != nil {
-			fmt.Printf("%v failed with: %v", q, err)
-		}
-		results <- int(response.Results()[0].Sum)
-	}
-}
-
 // RunSumMultiBatch sends queries in a QuerySet to the cluster in a configurable combination of
 // batchSize and concurrency. Examples:
 // concurrency=1, batchSize=(iteration count) -> equivalent to RunSumBatch
 // concurrency=N, batchSize=1                 -> equivalent to RunSumConcurrent(N)
 // concurrency=N, batchSize=10                -> sends concurrent batches of 10 queries
-func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) {
+func (s *Server) RunSumMultiBatch(qs QuerySet) BenchmarkResult {
 	queries := make(chan string)
 	results := make(chan int)
 	go func() {
 		qBatch := ""
 		batchCount := 0
 		for n := 0; n < qs.iterations; n++ {
-			if batchCount < batchSize {
+			if batchCount < s.batchSize {
 				qBatch += qs.QueryN(n)
+				// for sorting need this:
+				// qrs[n] = qs.QueryResultN(n)
+				// qBatch += qrs[n].raw
 				batchCount++
 			} else {
 				queries <- qBatch
@@ -228,7 +147,7 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) {
 
 	var wg = &sync.WaitGroup{}
 	start := time.Now()
-	for n := 0; n < concurrency; n++ {
+	for n := 0; n < s.concurrency; n++ {
 		wg.Add(1)
 		go func() {
 			s.runRawSumBatchQuery(queries, results, wg)
@@ -244,7 +163,8 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) {
 		fmt.Println(res)
 	}
 	seconds := time.Now().Sub(start).Seconds()
-	fmt.Printf("query %s concurrent(%d)+batch(%d): %d iterations, %f sec\n", qs.Name, concurrency, batchSize, qs.iterations, seconds)
+	// fmt.Printf("query %s concurrent(%d)+batch(%d): %d iterations, %f sec\n", qs.Name, concurrency, batchSize, qs.iterations, seconds)
+	return BenchmarkResult{qs.Name, qs.iterations, s.concurrency, s.batchSize, seconds}
 
 }
 
@@ -260,6 +180,280 @@ func (s *Server) runRawSumBatchQuery(queries <-chan string, results chan<- int, 
 			results <- int(res.Sum)
 		}
 	}
+}
+
+func (s *Server) HandleQuery(w http.ResponseWriter, r *http.Request) {
+	qs := getQuerySet(r.URL.Path)
+	result := s.RunSumMultiBatch(qs)
+
+	enc := json.NewEncoder(w)
+	err := enc.Encode(result)
+	if err != nil {
+		fmt.Printf("writing results: %v to responsewriter: %v", result, err)
+	}
+}
+
+func getQuerySet(q string) QuerySet {
+	var qs QuerySet
+	qname := strings.Split(q, "/")[2]
+	fmt.Printf("defining QuerySet for %v (%v)\n", qname, q)
+	switch qname {
+	case "1.1":
+		years := []int{1}
+		qs = NewQuerySet(
+			"1.1",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Range(frame="lo_discount", lo_discount >= 1),
+		Range(frame="lo_discount", lo_discount <= 3),
+		Range(frame="lo_quantity", lo_quantity < 25)
+	),
+frame="lo_revenue_computed", field="lo_revenue_computed")`,
+			[][]int{years},
+		)
+
+	case "1.2":
+		years := []int{6}
+		qs = NewQuerySet(
+			"1.2",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="lo_month", rowID=0),
+		Range(frame="lo_discount", lo_discount >= 4),
+		Range(frame="lo_discount", lo_discount <= 6),
+		Range(frame="lo_quantity", lo_quantity >= 26),
+		Range(frame="lo_quantity", lo_quantity <= 35)
+	),
+frame="lo_revenue_computed", field="lo_revenue_computed")`,
+			[][]int{years},
+		)
+
+	case "1.3":
+		years := []int{6}
+		qs = NewQuerySet(
+			"1.3",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_weeknum", rowID=%d),
+		Bitmap(frame="lo_year", rowID=2),
+		Range(frame="lo_discount", lo_discount >= 5),
+		Range(frame="lo_discount", lo_discount <= 7),
+		Range(frame="lo_quantity", lo_quantity >= 26),
+		Range(frame="lo_quantity", lo_quantity <= 35)
+	),
+frame="lo_revenue_computed", field="lo_revenue_computed")`,
+			[][]int{years},
+		)
+
+	case "1.1c":
+		years := []int{1}
+		qs = NewQuerySet(
+			"1.1",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Range(frame="lo_discount", lo_discount >< [1,3]),
+		Range(frame="lo_quantity", lo_quantity < 25)
+	),
+frame="lo_revenue_computed", field="lo_revenue_computed")`,
+			[][]int{years},
+		)
+
+	case "1.2c":
+		years := []int{6}
+		qs = NewQuerySet(
+			"1.2",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="lo_month", rowID=0),
+		Range(frame="lo_discount", lo_discount >< [4,6]),
+		Range(frame="lo_quantity", lo_quantity >< [26,35]),
+	),
+frame="lo_revenue_computed", field="lo_revenue_computed")`,
+			[][]int{years},
+		)
+
+	case "1.3c":
+		years := []int{6}
+		qs = NewQuerySet(
+			"1.3",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_weeknum", rowID=%d),
+		Bitmap(frame="lo_year", rowID=2),
+		Range(frame="lo_discount", lo_discount >< [5,7]),
+		Range(frame="lo_quantity", lo_quantity >< [26,35]),
+	),
+frame="lo_revenue_computed", field="lo_revenue_computed")`,
+			[][]int{years},
+		)
+
+	case "2.1":
+		years := arange(1992, 1999, 1) // all years
+		brands := arange(40, 80, 1)    // brands for the second manufacturer, "MFGR#12"
+		// regionID := 0  // America
+		qs = NewQuerySet(
+			"2.1",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="p_brand1", rowID=%d),
+		Bitmap(frame="s_region", rowID=0)
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{years, brands},
+		)
+	case "2.2":
+		years := arange(1992, 1999, 1) // all years
+		brands := arange(260, 268, 1)  // brands between MFGR#2221 and MFGR#2228 - 7th manufacturer, brands 20-27, 40*(7-1) + [20..27]
+		// regionID := 2  // Asia
+		qs = NewQuerySet(
+			"2.2",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="p_brand1", rowID=%d),
+		Bitmap(frame="s_region", rowID=2)
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{years, brands},
+		)
+
+	case "2.3":
+		years := arange(1992, 1999, 1) // all years
+		// brands := 260               // MFGR#2221
+		// regionID := 3               // Europe
+		qs = NewQuerySet(
+			"2.3",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="p_brand1", rowID=260),
+		Bitmap(frame="s_region", rowID=3)
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{years},
+		)
+
+	case "3.1":
+		years := arange(1992, 1998, 1)
+		nations := arange(10, 15, 1) // asia nations
+		qs = NewQuerySet(
+			"3.1",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="c_nation", rowID=%d),
+		Bitmap(frame="s_nation", rowID=%d)
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{years, nations, nations},
+		)
+
+	case "3.2":
+		years := arange(1992, 1998, 1)
+		nationID := nations["UNITED STATES"]
+		cities := arange(nationID*10, nationID*10+10, 1)
+		qs = NewQuerySet(
+			"3.2",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="c_city", rowID=%d),
+		Bitmap(frame="s_city", rowID=%d)
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{years, cities, cities},
+		)
+
+	case "3.3":
+		years := arange(1992, 1998, 1)
+		cities := []int{181, 185}
+		qs = NewQuerySet(
+			"3.3",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="c_city", rowID=%d),
+		Bitmap(frame="s_city", rowID=%d)
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{years, cities, cities},
+		)
+
+	case "3.4":
+		cities := []int{181, 185}
+		qs = NewQuerySet(
+			"3.4",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=5),
+		Bitmap(frame="lo_month", rowID=11),
+		Bitmap(frame="c_city", rowID=%d),
+		Bitmap(frame="s_city", rowID=%d)
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{cities, cities},
+		)
+
+	case "4.1":
+		years := arange(1992, 1999, 1)
+		nations := arange(0, 5, 1)
+		qs = NewQuerySet(
+			"4.1",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="c_nation", rowID=%d),
+		Bitmap(frame="s_region", rowID=0),
+		Union(
+			Bitmap(frame="p_mfgr", rowID=1),
+			Bitmap(frame="p_mfgr", rowID=2)
+		)
+	),
+frame="lo_profit", field="lo_profit")`,
+			[][]int{years, nations},
+		)
+
+	case "4.2":
+		years := []int{1997, 1998}
+		nations := arange(0, 5, 1)
+		categories := arange(0, 10, 1)
+		qs = NewQuerySet(
+			"4.2",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="s_nation", rowID=%d),
+		Bitmap(frame="c_region", rowID=0),
+		Bitmap(frame="p_category", rowID=%d),
+	),
+frame="lo_profit", field="lo_profit")`,
+			[][]int{years, nations, categories},
+		)
+
+	case "4.3":
+		years := []int{1997, 1998}
+		cities := arange(30, 40, 1)
+		brands := arange(120, 160, 1)
+		qs = NewQuerySet(
+			"4.3",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="s_city", rowID=%d),
+		Bitmap(frame="c_region", rowID=0),
+		Bitmap(frame="p_brand1", rowID=%d),
+	),
+frame="lo_profit", field="lo_profit")`,
+			[][]int{years, cities, brands},
+		)
+	}
+
+	return qs
 }
 
 func (s *Server) HandleTestQuery(w http.ResponseWriter, r *http.Request) {
@@ -279,223 +473,11 @@ func (s *Server) HandleTestQuery(w http.ResponseWriter, r *http.Request) {
 		},
 	)
 
-	s.RunSumBatch(qs)
-	s.RunSumBatchSortable(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-}
+	result := s.RunSumMultiBatch(qs)
+	enc := json.NewEncoder(w)
+	err := enc.Encode(result)
+	if err != nil {
+		fmt.Printf("writing results: %v to responsewriter: %v", result, err)
+	}
 
-func (s *Server) HandleQuery11New(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (s *Server) HandleQuery12New(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (s *Server) HandleQuery13New(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (s *Server) HandleQuery21New(w http.ResponseWriter, r *http.Request) {
-	years := arange(1992, 1999, 1) // all years
-	brands := arange(40, 80, 1)    // brands for the second manufacturer, "MFGR#12"
-	// regionID := 0  // America
-	qs := NewQuerySet(
-		"2.1",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="p_brand1", rowID=%d),
-		Bitmap(frame="s_region", rowID=0)
-	),
-	frame="lo_revenue", field="lo_revenue")`,
-		[][]int{years, brands},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-}
-
-func (s *Server) HandleQuery22New(w http.ResponseWriter, r *http.Request) {
-	years := arange(1992, 1999, 1) // all years
-	brands := arange(260, 268, 1)  // brands between MFGR#2221 and MFGR#2228 - 7th manufacturer, brands 20-27, 40*(7-1) + [20..27]
-	// regionID := 2  // Asia
-	qs := NewQuerySet(
-		"2.2",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="p_brand1", rowID=%d),
-		Bitmap(frame="s_region", rowID=2)
-	),
-	frame="lo_revenue", field="lo_revenue")`,
-		[][]int{years, brands},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-}
-
-func (s *Server) HandleQuery23New(w http.ResponseWriter, r *http.Request) {
-	years := arange(1992, 1999, 1) // all years
-	// brands := 260               // MFGR#2221
-	// regionID := 3               // Europe
-	qs := NewQuerySet(
-		"2.3",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="p_brand1", rowID=260),
-		Bitmap(frame="s_region", rowID=3)
-	),
-	frame="lo_revenue", field="lo_revenue")`,
-		[][]int{years},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-
-}
-
-func (s *Server) HandleQuery31New(w http.ResponseWriter, r *http.Request) {
-	years := arange(1992, 1998, 1)
-	nations := arange(10, 15, 1) // asia nations
-	qs := NewQuerySet(
-		"3.1",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="c_nation", rowID=%d),
-		Bitmap(frame="s_nation", rowID=%d)
-	),
-	frame="lo_revenue", field="lo_revenue")`,
-		[][]int{years, nations, nations},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-}
-
-func (s *Server) HandleQuery32New(w http.ResponseWriter, r *http.Request) {
-	years := arange(1992, 1998, 1)
-	nationID := nations["UNITED STATES"]
-	cities := arange(nationID*10, nationID*10+10, 1)
-	qs := NewQuerySet(
-		"3.2",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="c_city", rowID=%d),
-		Bitmap(frame="s_city", rowID=%d)
-	),
-	frame="lo_revenue", field="lo_revenue")`,
-		[][]int{years, cities, cities},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-}
-
-func (s *Server) HandleQuery33New(w http.ResponseWriter, r *http.Request) {
-	years := arange(1992, 1998, 1)
-	cities := []int{181, 185}
-	qs := NewQuerySet(
-		"3.3",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="c_city", rowID=%d),
-		Bitmap(frame="s_city", rowID=%d)
-	),
-	frame="lo_revenue", field="lo_revenue")`,
-		[][]int{years, cities, cities},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-}
-
-func (s *Server) HandleQuery34New(w http.ResponseWriter, r *http.Request) {
-	cities := []int{181, 185}
-	qs := NewQuerySet(
-		"3.4",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=5),
-		Bitmap(frame="lo_month", rowID=11),
-		Bitmap(frame="c_city", rowID=%d),
-		Bitmap(frame="s_city", rowID=%d)
-	),
-	frame="lo_revenue", field="lo_revenue")`,
-		[][]int{cities, cities},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-}
-
-func (s *Server) HandleQuery41New(w http.ResponseWriter, r *http.Request) {
-	years := arange(1991, 1999, 1)
-	nations := arange(0, 5, 1)
-	qs := NewQuerySet(
-		"4.1",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="c_nation", rowID=%d),
-		Bitmap(frame="s_region", rowID=0),
-		Union(
-			Bitmap(frame="p_mfgr", rowID=1),
-			Bitmap(frame="p_mfgr", rowID=2)
-		)
-	),
-frame="lo_profit", field="lo_profit")`,
-		[][]int{years, nations},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-}
-
-func (s *Server) HandleQuery42New(w http.ResponseWriter, r *http.Request) {
-	years := []int{1997, 1998}
-	nations := arange(0, 5, 1)
-	categories := arange(0, 10, 1)
-	qs := NewQuerySet(
-		"4.2",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="s_nation", rowID=%d),
-		Bitmap(frame="c_region", rowID=0),
-		Bitmap(frame="p_category", rowID=%d),
-	),
-frame="lo_profit", field="lo_profit")`,
-		[][]int{years, nations, categories},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
-}
-
-func (s *Server) HandleQuery43New(w http.ResponseWriter, r *http.Request) {
-	years := []int{1997, 1998}
-	cities := arange(30, 40, 1)
-	brands := arange(120, 160, 1)
-	qs := NewQuerySet(
-		"4.3",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="s_city", rowID=%d),
-		Bitmap(frame="c_region", rowID=0),
-		Bitmap(frame="p_brand1", rowID=%d),
-	),
-frame="lo_profit", field="lo_profit")`,
-		[][]int{years, cities, brands},
-	)
-	s.RunSumBatch(qs)
-	s.RunSumConcurrent(qs, 32)
-	s.RunSumMultiBatch(qs, 32, 10)
 }
