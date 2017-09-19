@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	//"net/url"
 
 	"github.com/gorilla/mux"
 	pilosa "github.com/pilosa/go-pilosa"
@@ -16,17 +15,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var Version = "v0.0.0" // demo version
-
-var yearMap = map[int]int{
-	1992: 1992,
-	1993: 1993,
-	1994: 1994,
-	1995: 1995,
-	1996: 1996,
-	1997: 1997,
-	1998: 1998,
-}
+var Version = "v0.2.0" // demo version
 
 var regions = map[string]int{
 	"AMERICA":     0,
@@ -69,37 +58,7 @@ var nations = map[string]int{
 	"EGYPT":          24,
 }
 
-var cities = make(map[string]int)
-var cityIDs = make(map[int]string)
-
-func DefineCityMap() {
-	for nation, nationID := range nations {
-		for j := 0; j < 10; j++ {
-			cityname := fmt.Sprintf("%s%d", PadRight(nation, " ", 9)[0:9], j)
-			cityID := nationID*10 + j
-			cities[cityname] = cityID
-			cityIDs[cityID] = cityname
-			cityID += 1
-		}
-	}
-}
-
-func PadRight(str, pad string, length int) string {
-	for {
-		str += pad
-		if len(str) > length {
-			return str[0:length]
-		}
-	}
-}
-
 func main() {
-	// TestQuerySet()
-	DefineCityMap()
-	//translator = ssb.NewTranslator("ssdbmapping")
-	//fmt.Println(translator)
-	//fmt.Println(translator.Get("c_city", 0))
-	//return
 	pilosaAddr := pflag.StringP("pilosa", "p", "localhost:10101", "host:port for pilosa")
 	concurrency := pflag.IntP("concurrency", "c", 32, "number of queries to execute in parallel")
 	batchSize := pflag.IntP("batchsize", "b", 1, "number of queries to combine into a single batch request")
