@@ -224,8 +224,8 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"1.2",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="lo_month", rowID=0),
+		Bitmap(frame="lo_year", rowID=%d),
 		Range(frame="lo_discount", lo_discount >= 4),
 		Range(frame="lo_discount", lo_discount <= 6),
 		Range(frame="lo_quantity", lo_quantity >= 26),
@@ -272,8 +272,8 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"1.2c",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="lo_month", rowID=0),
+		Bitmap(frame="lo_year", rowID=%d),
 		Range(frame="lo_discount", lo_discount >< [4,6]),
 		Range(frame="lo_quantity", lo_quantity >< [26,35]),
 	),
@@ -304,12 +304,12 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"2.1",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="p_brand1", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="s_region", rowID=0)
 	),
 	frame="lo_revenue", field="lo_revenue")`,
-			[][]int{years, brands},
+			[][]int{brands, years},
 		)
 	case "2.2":
 		years := arange(1992, 1999, 1) // all years
@@ -319,12 +319,12 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"2.2",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="p_brand1", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="s_region", rowID=2)
 	),
 	frame="lo_revenue", field="lo_revenue")`,
-			[][]int{years, brands},
+			[][]int{brands, years},
 		)
 
 	case "2.3":
@@ -350,12 +350,12 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"3.1",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="c_nation", rowID=%d),
 		Bitmap(frame="s_nation", rowID=%d)
+		Bitmap(frame="lo_year", rowID=%d),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
-			[][]int{years, nations, nations},
+			[][]int{nations, nations, years},
 		)
 
 	case "3.2":
@@ -366,12 +366,12 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"3.2",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="c_city", rowID=%d),
 		Bitmap(frame="s_city", rowID=%d)
+		Bitmap(frame="lo_year", rowID=%d),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
-			[][]int{years, cities, cities},
+			[][]int{cities, cities, years},
 		)
 
 	case "3.3":
@@ -381,12 +381,12 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"3.3",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="c_city", rowID=%d),
 		Bitmap(frame="s_city", rowID=%d)
+		Bitmap(frame="lo_year", rowID=%d),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
-			[][]int{years, cities, cities},
+			[][]int{cities, cities, years},
 		)
 
 	case "3.4":
@@ -395,10 +395,10 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"3.4",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=1997),
-		Bitmap(frame="lo_month", rowID=11),
 		Bitmap(frame="c_city", rowID=%d),
 		Bitmap(frame="s_city", rowID=%d)
+		Bitmap(frame="lo_month", rowID=11),
+		Bitmap(frame="lo_year", rowID=1997),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
 			[][]int{cities, cities},
@@ -411,8 +411,8 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"4.1",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="c_nation", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="s_region", rowID=0),
 		Union(
 			Bitmap(frame="p_mfgr", rowID=1),
@@ -420,7 +420,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		)
 	),
 frame="lo_profit", field="lo_profit")`,
-			[][]int{years, nations},
+			[][]int{nations, years},
 		)
 
 	case "4.2":
@@ -431,13 +431,13 @@ frame="lo_profit", field="lo_profit")`,
 			"4.2",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="s_nation", rowID=%d),
-		Bitmap(frame="c_region", rowID=0),
 		Bitmap(frame="p_category", rowID=%d),
+		Bitmap(frame="s_nation", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="c_region", rowID=0),
 	),
 frame="lo_profit", field="lo_profit")`,
-			[][]int{years, nations, categories},
+			[][]int{categories, nations, years},
 		)
 
 	case "4.3":
@@ -448,13 +448,13 @@ frame="lo_profit", field="lo_profit")`,
 			"4.3",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="s_city", rowID=%d),
-		Bitmap(frame="c_region", rowID=0),
 		Bitmap(frame="p_brand1", rowID=%d),
+		Bitmap(frame="s_city", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
+		Bitmap(frame="c_region", rowID=0),
 	),
 frame="lo_profit", field="lo_profit")`,
-			[][]int{years, cities, brands},
+			[][]int{brands, cities, years},
 		)
 	}
 
