@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+// arange generates an "arithmetic range" slice. Example:
+// arange(10, 20, 2) -> [10, 12, 14, 16, 18]
 func arange(start, stop, step int) []int {
 	x := make([]int, 0, (stop-start)/step)
 	for n := start; n < stop; n += step {
@@ -44,6 +46,7 @@ type BenchmarkResult struct {
 	Concurrency int     `json:"concurrency"`
 	BatchSize   int     `json:"batchsize"`
 	Seconds     float64 `json:"seconds"`
+	ColumnCount uint64  `json:"columncount"`
 }
 
 // QuerySet encapsulates a small amount of information necessary for
@@ -163,18 +166,20 @@ func (s *Server) RunSumMultiBatch(qs QuerySet) BenchmarkResult {
 		fmt.Println(res)
 	}
 	seconds := time.Now().Sub(start).Seconds()
-	// fmt.Printf("query %s concurrent(%d)+batch(%d): %d iterations, %f sec\n", qs.Name, concurrency, batchSize, qs.iterations, seconds)
-	return BenchmarkResult{qs.Name, qs.iterations, s.concurrency, s.batchSize, seconds}
-
+	return BenchmarkResult{qs.Name, qs.iterations, s.concurrency, s.batchSize, seconds, s.NumLineOrders}
 }
 
-// runRawSumBatchQuery sends RawQueries to the cluster, then sends the Sum from each results to a result channel.
+// runRawSumBatchQuery sends RawQueries to the cluster, then sends the Sum from each result to a result channel.
 func (s *Server) runRawSumBatchQuery(queries <-chan string, results chan<- int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for q := range queries {
 		response, err := s.Client.Query(s.Index.RawQuery(q), nil)
 		if err != nil {
-			fmt.Printf("%v failed with: %v", q, err)
+			fmt.Printf("in runRawSumBatchQuery: %vfailed with: %v\n", q, err)
+			if strings.Contains(err.Error(), "invalid argument value") {
+				fmt.Println("server may not support BETWEEN queries")
+			}
+			return
 		}
 		for _, res := range response.Results() {
 			results <- int(res.Sum)
@@ -250,7 +255,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.1c":
 		years := []int{1}
 		qs = NewQuerySet(
-			"1.1",
+			"1.1c",
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
@@ -264,7 +269,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.2c":
 		years := []int{6}
 		qs = NewQuerySet(
-			"1.2",
+			"1.2c",
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
@@ -279,7 +284,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.3c":
 		years := []int{6}
 		qs = NewQuerySet(
-			"1.3",
+			"1.3c",
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_weeknum", rowID=%d),
