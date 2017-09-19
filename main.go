@@ -104,6 +104,7 @@ func main() {
 	concurrency := pflag.IntP("concurrency", "c", 32, "number of queries to execute in parallel")
 	batchSize := pflag.IntP("batchsize", "b", 1, "number of queries to combine into a single batch request")
 	index := pflag.StringP("index", "i", "ssb", "pilosa index")
+	concurrency := pflag.IntP("concurrency", "c", 32, "number of queries to execute in parallel")
 	pflag.Parse()
 
 	server, err := NewServer(*pilosaAddr, *index)
@@ -203,7 +204,7 @@ func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	frames := []string{
 		"lo_quantity", // these frames X each have one field, field_X
 		"lo_quantity_b",
-		"lo_extended_price",
+		"lo_extendedprice",
 		"lo_discount",
 		"lo_discount_b",
 		"lo_revenue",
