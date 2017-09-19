@@ -306,7 +306,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	Intersect(
 		Bitmap(frame="p_brand1", rowID=%d),
 		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="s_region", rowID=0)
+		Bitmap(frame="s_region", rowID=0),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
 			[][]int{brands, years},
@@ -321,7 +321,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	Intersect(
 		Bitmap(frame="p_brand1", rowID=%d),
 		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="s_region", rowID=2)
+		Bitmap(frame="s_region", rowID=2),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
 			[][]int{brands, years},
@@ -337,7 +337,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="p_brand1", rowID=260),
-		Bitmap(frame="s_region", rowID=3)
+		Bitmap(frame="s_region", rowID=3),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
 			[][]int{years},
@@ -351,7 +351,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_nation", rowID=%d),
-		Bitmap(frame="s_nation", rowID=%d)
+		Bitmap(frame="s_nation", rowID=%d),
 		Bitmap(frame="lo_year", rowID=%d),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
@@ -367,7 +367,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_city", rowID=%d),
-		Bitmap(frame="s_city", rowID=%d)
+		Bitmap(frame="s_city", rowID=%d),
 		Bitmap(frame="lo_year", rowID=%d),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
@@ -382,7 +382,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_city", rowID=%d),
-		Bitmap(frame="s_city", rowID=%d)
+		Bitmap(frame="s_city", rowID=%d),
 		Bitmap(frame="lo_year", rowID=%d),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
@@ -396,7 +396,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_city", rowID=%d),
-		Bitmap(frame="s_city", rowID=%d)
+		Bitmap(frame="s_city", rowID=%d),
 		Bitmap(frame="lo_month", rowID=11),
 		Bitmap(frame="lo_year", rowID=1997),
 	),
@@ -416,7 +416,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		Bitmap(frame="s_region", rowID=0),
 		Union(
 			Bitmap(frame="p_mfgr", rowID=1),
-			Bitmap(frame="p_mfgr", rowID=2)
+			Bitmap(frame="p_mfgr", rowID=2),
 		)
 	),
 frame="lo_profit", field="lo_profit")`,
@@ -468,7 +468,7 @@ func (s *Server) HandleTestQuery(w http.ResponseWriter, r *http.Request) {
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="p_brand1", rowID=%d),
-		Bitmap(frame="s_region", rowID=%d)
+		Bitmap(frame="s_region", rowID=%d),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
 		[][]int{
@@ -478,7 +478,7 @@ func (s *Server) HandleTestQuery(w http.ResponseWriter, r *http.Request) {
 		},
 	)
 
-	result := s.RunSumMultiBatch(qs)
+	result := s.RunSumMultiBatch(qs, s.concurrency, s.batchSize)
 	enc := json.NewEncoder(w)
 	err := enc.Encode(result)
 	if err != nil {
