@@ -38,6 +38,7 @@ var regions = map[string]int{
 
 var americaNations = []string{"CANADA", "ARGENTINA", "BRAZIL", "UNITED STATES", "PERU"}
 var asiaNations = []string{"INDIA", "INDONESIA", "CHINA", "VIETNAM", "JAPAN"}
+var asiaNationIDs = []int{10, 11, 12, 13, 14}
 
 // 5 nations per region, in same order as above
 var nations = map[string]int{
@@ -93,6 +94,7 @@ func PadRight(str, pad string, length int) string {
 }
 
 func main() {
+	// TestQuerySet()
 	DefineCityMap()
 	//translator = ssb.NewTranslator("ssdbmapping")
 	//fmt.Println(translator)
@@ -155,22 +157,23 @@ func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	router.HandleFunc("/version", server.HandleVersion).Methods("GET")
 	router.HandleFunc("/query/topn", server.HandleTopN).Methods("GET")
 	router.HandleFunc("/query/sum", server.HandleSum).Methods("GET")
+	router.HandleFunc("/query/test", server.HandleTestQuery).Methods("GET")
 	router.HandleFunc("/query/1.1", server.HandleQuery11).Methods("GET")
 	router.HandleFunc("/query/1.2", server.HandleQuery12).Methods("GET")
 	router.HandleFunc("/query/1.3", server.HandleQuery13).Methods("GET")
 	router.HandleFunc("/query/1.1b", server.HandleQuery11b).Methods("GET")
 	router.HandleFunc("/query/1.2b", server.HandleQuery12b).Methods("GET")
 	router.HandleFunc("/query/1.3b", server.HandleQuery13b).Methods("GET")
-	router.HandleFunc("/query/2.1", server.HandleQuery21).Methods("GET")
-	router.HandleFunc("/query/2.2", server.HandleQuery22).Methods("GET")
-	router.HandleFunc("/query/2.3", server.HandleQuery23).Methods("GET")
-	router.HandleFunc("/query/3.1", server.HandleQuery31).Methods("GET")
-	router.HandleFunc("/query/3.2", server.HandleQuery32).Methods("GET")
-	router.HandleFunc("/query/3.3", server.HandleQuery33).Methods("GET")
-	router.HandleFunc("/query/3.4", server.HandleQuery34).Methods("GET")
-	router.HandleFunc("/query/4.1", server.HandleQuery41).Methods("GET")
-	router.HandleFunc("/query/4.2", server.HandleQuery42).Methods("GET")
-	router.HandleFunc("/query/4.3", server.HandleQuery43).Methods("GET")
+	router.HandleFunc("/query/2.1", server.HandleQuery21New).Methods("GET")
+	router.HandleFunc("/query/2.2", server.HandleQuery22New).Methods("GET")
+	router.HandleFunc("/query/2.3", server.HandleQuery23New).Methods("GET")
+	router.HandleFunc("/query/3.1", server.HandleQuery31New).Methods("GET")
+	router.HandleFunc("/query/3.2", server.HandleQuery32New).Methods("GET")
+	router.HandleFunc("/query/3.3", server.HandleQuery33New).Methods("GET")
+	router.HandleFunc("/query/3.4", server.HandleQuery34New).Methods("GET")
+	router.HandleFunc("/query/4.1", server.HandleQuery41New).Methods("GET")
+	router.HandleFunc("/query/4.2", server.HandleQuery42New).Methods("GET")
+	router.HandleFunc("/query/4.3", server.HandleQuery43New).Methods("GET")
 
 	pilosaURI, err := pilosa.NewURIFromAddress(pilosaAddr)
 	if err != nil {
