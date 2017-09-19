@@ -233,9 +233,9 @@ type query4Row struct {
 const q41Fmt = `
 Sum(
 	Intersect(
+		Bitmap(frame="s_region", rowID=0),
 		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="c_nation", rowID=%d),
-		Bitmap(frame="s_region", rowID=0),
 		Union(
 			Bitmap(frame="p_mfgr", rowID=1),
 			Bitmap(frame="p_mfgr", rowID=2)
@@ -246,19 +246,19 @@ frame="lo_profit", field="lo_profit")`
 const q42Fmt = `
 Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="s_nation", rowID=%d),
 		Bitmap(frame="c_region", rowID=0),
+		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="p_category", rowID=%d),
+		Bitmap(frame="s_nation", rowID=%d),
 	),
 frame="lo_profit", field="lo_profit")`
 
 const q43Fmt = `
 Sum(
 	Intersect(
+		Bitmap(frame="c_region", rowID=0),
 		Bitmap(frame="lo_year", rowID=%d),
 		Bitmap(frame="s_city", rowID=%d),
-		Bitmap(frame="c_region", rowID=0),
 		Bitmap(frame="p_brand1", rowID=%d),
 	),
 frame="lo_profit", field="lo_profit")`
