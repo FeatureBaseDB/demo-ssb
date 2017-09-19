@@ -104,7 +104,6 @@ func main() {
 	concurrency := pflag.IntP("concurrency", "c", 32, "number of queries to execute in parallel")
 	batchSize := pflag.IntP("batchsize", "b", 1, "number of queries to combine into a single batch request")
 	index := pflag.StringP("index", "i", "ssb", "pilosa index")
-	concurrency := pflag.IntP("concurrency", "c", 32, "number of queries to execute in parallel")
 	pflag.Parse()
 
 	server, err := NewServer(*pilosaAddr, *index)
@@ -169,9 +168,6 @@ func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	router.HandleFunc("/query/1.1", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/1.2", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/1.3", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/1.1b", server.HandleQuery11b).Methods("GET")
-	router.HandleFunc("/query/1.2b", server.HandleQuery12b).Methods("GET")
-	router.HandleFunc("/query/1.3b", server.HandleQuery13b).Methods("GET")
 	router.HandleFunc("/query/1.1c", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/1.2c", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/1.3c", server.HandleQuery).Methods("GET")
