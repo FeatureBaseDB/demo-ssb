@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +48,7 @@ type BenchmarkResult struct {
 	BatchSize   int     `json:"batchsize"`
 	Seconds     float64 `json:"seconds"`
 	ColumnCount uint64  `json:"columncount"`
+	Timestamp   int32   `json:"timestamp"`
 }
 
 // QuerySet encapsulates a small amount of information necessary for
@@ -123,14 +125,14 @@ func (s *QuerySet) QueryResultN(n int) QueryResult {
 // concurrency=1, batchSize=(iteration count) -> equivalent to RunSumBatch
 // concurrency=N, batchSize=1                 -> equivalent to RunSumConcurrent(N)
 // concurrency=N, batchSize=10                -> sends concurrent batches of 10 queries
-func (s *Server) RunSumMultiBatch(qs QuerySet) BenchmarkResult {
+func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) BenchmarkResult {
 	queries := make(chan string)
 	results := make(chan int)
 	go func() {
 		qBatch := ""
 		batchCount := 0
 		for n := 0; n < qs.iterations; n++ {
-			if batchCount < s.batchSize {
+			if batchCount < batchSize {
 				qBatch += qs.QueryN(n)
 				// for sorting need this:
 				// qrs[n] = qs.QueryResultN(n)
@@ -150,7 +152,7 @@ func (s *Server) RunSumMultiBatch(qs QuerySet) BenchmarkResult {
 
 	var wg = &sync.WaitGroup{}
 	start := time.Now()
-	for n := 0; n < s.concurrency; n++ {
+	for n := 0; n < concurrency; n++ {
 		wg.Add(1)
 		go func() {
 			s.runRawSumBatchQuery(queries, results, wg)
@@ -162,11 +164,35 @@ func (s *Server) RunSumMultiBatch(qs QuerySet) BenchmarkResult {
 	}()
 	// TODO sort
 
-	for res := range results {
-		fmt.Println(res)
+	timestamp := int32(time.Now().Unix())
+	fname := fmt.Sprintf("results/%v-%v.txt", qs.Name, timestamp)
+	f, err := os.Create(fname)
+	if err != nil {
+		fmt.Printf("creating results file: %v", err)
+	} else {
+		defer f.Close()
+		nn := 0
+		for res := range results {
+			n, err := f.WriteString(fmt.Sprintf("%v\n", res))
+			nn += n
+			if err != nil {
+				fmt.Printf("writing results file: %v", err)
+				break
+			}
+		}
+		fmt.Printf("wrote %d bytes to %v\n", nn, fname)
 	}
+
 	seconds := time.Now().Sub(start).Seconds()
-	return BenchmarkResult{qs.Name, qs.iterations, s.concurrency, s.batchSize, seconds, s.NumLineOrders}
+	return BenchmarkResult{
+		qs.Name,
+		qs.iterations,
+		concurrency,
+		batchSize,
+		seconds,
+		s.NumLineOrders,
+		timestamp,
+	}
 }
 
 // runRawSumBatchQuery sends RawQueries to the cluster, then sends the Sum from each result to a result channel.
