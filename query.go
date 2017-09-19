@@ -204,7 +204,7 @@ func getQuerySet(q string) QuerySet {
 	fmt.Printf("defining QuerySet for %v (%v)\n", qname, q)
 	switch qname {
 	case "1.1":
-		years := []int{1}
+		years := []int{1993}
 		qs = NewQuerySet(
 			"1.1",
 			`Sum(
@@ -219,7 +219,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		)
 
 	case "1.2":
-		years := []int{6}
+		years := []int{1994}
 		qs = NewQuerySet(
 			"1.2",
 			`Sum(
@@ -236,13 +236,13 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		)
 
 	case "1.3":
-		years := []int{6}
+		years := []int{1994}
 		qs = NewQuerySet(
 			"1.3",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_weeknum", rowID=%d),
-		Bitmap(frame="lo_year", rowID=2),
+		Bitmap(frame="lo_weeknum", rowID=6),
+		Bitmap(frame="lo_year", rowID=%d),
 		Range(frame="lo_discount", lo_discount >= 5),
 		Range(frame="lo_discount", lo_discount <= 7),
 		Range(frame="lo_quantity", lo_quantity >= 26),
@@ -253,7 +253,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		)
 
 	case "1.1c":
-		years := []int{1}
+		years := []int{1993}
 		qs = NewQuerySet(
 			"1.1c",
 			`Sum(
@@ -267,7 +267,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		)
 
 	case "1.2c":
-		years := []int{6}
+		years := []int{1994}
 		qs = NewQuerySet(
 			"1.2c",
 			`Sum(
@@ -282,13 +282,13 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		)
 
 	case "1.3c":
-		years := []int{6}
+		years := []int{1994}
 		qs = NewQuerySet(
 			"1.3c",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_weeknum", rowID=%d),
-		Bitmap(frame="lo_year", rowID=2),
+		Bitmap(frame="lo_weeknum", rowID=6),
+		Bitmap(frame="lo_year", rowID=%d),
 		Range(frame="lo_discount", lo_discount >< [5,7]),
 		Range(frame="lo_quantity", lo_quantity >< [26,35]),
 	),
@@ -395,7 +395,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"3.4",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=5),
+		Bitmap(frame="lo_year", rowID=1997),
 		Bitmap(frame="lo_month", rowID=11),
 		Bitmap(frame="c_city", rowID=%d),
 		Bitmap(frame="s_city", rowID=%d)
