@@ -215,12 +215,50 @@ func (s *Server) runRawSumBatchQuery(queries <-chan string, results chan<- int, 
 
 func (s *Server) HandleQuery(w http.ResponseWriter, r *http.Request) {
 	qs := getQuerySet(r.URL.Path)
-	result := s.RunSumMultiBatch(qs)
+	var results []BenchmarkResult
+	if s.concurrency > 0 {
+		results = []BenchmarkResult{
+			s.RunSumMultiBatch(qs, s.concurrency, s.batchSize),
+		}
+	} else {
+		results = []BenchmarkResult{
+			s.RunSumMultiBatch(qs, 1, 1),
+			s.RunSumMultiBatch(qs, 1, 2),
+			s.RunSumMultiBatch(qs, 1, 4),
+			s.RunSumMultiBatch(qs, 1, 8),
+			s.RunSumMultiBatch(qs, 1, 16),
+			s.RunSumMultiBatch(qs, 2, 1),
+			s.RunSumMultiBatch(qs, 2, 2),
+			s.RunSumMultiBatch(qs, 2, 4),
+			s.RunSumMultiBatch(qs, 2, 8),
+			s.RunSumMultiBatch(qs, 2, 16),
+			s.RunSumMultiBatch(qs, 4, 1),
+			s.RunSumMultiBatch(qs, 4, 2),
+			s.RunSumMultiBatch(qs, 4, 4),
+			s.RunSumMultiBatch(qs, 4, 8),
+			s.RunSumMultiBatch(qs, 4, 16),
+			s.RunSumMultiBatch(qs, 8, 1),
+			s.RunSumMultiBatch(qs, 8, 2),
+			s.RunSumMultiBatch(qs, 8, 4),
+			s.RunSumMultiBatch(qs, 8, 8),
+			s.RunSumMultiBatch(qs, 8, 16),
+			s.RunSumMultiBatch(qs, 16, 1),
+			s.RunSumMultiBatch(qs, 16, 2),
+			s.RunSumMultiBatch(qs, 16, 4),
+			s.RunSumMultiBatch(qs, 16, 8),
+			s.RunSumMultiBatch(qs, 16, 16),
+			s.RunSumMultiBatch(qs, 32, 1),
+			s.RunSumMultiBatch(qs, 32, 2),
+			s.RunSumMultiBatch(qs, 32, 4),
+			s.RunSumMultiBatch(qs, 32, 8),
+			s.RunSumMultiBatch(qs, 32, 16),
+		}
+	}
 
 	enc := json.NewEncoder(w)
-	err := enc.Encode(result)
+	err := enc.Encode(results)
 	if err != nil {
-		fmt.Printf("writing results: %v to responsewriter: %v", result, err)
+		fmt.Printf("writing results: %v to responsewriter: %v", results, err)
 	}
 }
 
