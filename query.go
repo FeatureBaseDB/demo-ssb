@@ -128,6 +128,8 @@ func (s *QuerySet) QueryResultN(n int) QueryResult {
 func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) BenchmarkResult {
 	queries := make(chan string)
 	results := make(chan int)
+
+	// Add queries to channel
 	go func() {
 		qBatch := ""
 		batchCount := 0
@@ -149,6 +151,7 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 		close(queries)
 	}()
 
+	// Start workers.
 	var wg = &sync.WaitGroup{}
 	start := time.Now()
 	for n := 0; n < concurrency; n++ {
@@ -163,6 +166,8 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 	}()
 	// TODO sort
 
+	// Write results to file.
+	// TODO needs to write query inputs as well to be more meaningful.
 	timestamp := int32(time.Now().Unix())
 	fname := fmt.Sprintf("results/%v-%v.txt", qs.Name, timestamp)
 	err := os.MkdirAll("results", 0700)
@@ -186,6 +191,7 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 		fmt.Printf("wrote %d bytes to %v\n", nn, fname)
 	}
 
+	// Return result object.
 	seconds := time.Now().Sub(start).Seconds()
 	return BenchmarkResult{
 		qs.Name,
@@ -325,7 +331,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"1.1b",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=1),
+		Bitmap(frame="lo_year", rowID=%d),
 		Union(
 			Bitmap(frame=lo_discount_b, rowID=1),
 			Bitmap(frame=lo_discount_b, rowID=2),
@@ -366,8 +372,8 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"1.2b",
 			`Sum(
 	Intersect(
-		Bitmap(frame="lo_year", rowID=6),
 		Bitmap(frame="lo_month", rowID=0),
+		Bitmap(frame="lo_year", rowID=%d),
 		Union(
 			Bitmap(frame=lo_discount_b, rowID=4),
 			Bitmap(frame=lo_discount_b, rowID=5),
@@ -396,7 +402,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_weeknum", rowID=6),
-		Bitmap(frame="lo_year", rowID=2),
+		Bitmap(frame="lo_year", rowID=%d),
 		Union(
 			Bitmap(frame=lo_discount_b, rowID=5),
 			Bitmap(frame=lo_discount_b, rowID=6),
