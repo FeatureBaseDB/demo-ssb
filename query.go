@@ -319,6 +319,105 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			[][]int{years},
 		)
 
+	case "1.1b":
+		years := []int{1993}
+		qs = NewQuerySet(
+			"1.1b",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=1),
+		Union(
+			Bitmap(frame=lo_discount_b, rowID=1),
+			Bitmap(frame=lo_discount_b, rowID=2),
+			Bitmap(frame=lo_discount_b, rowID=3)),
+		Union(
+			Bitmap(frame=lo_quantity_b, rowID=1),
+			Bitmap(frame=lo_quantity_b, rowID=2),
+			Bitmap(frame=lo_quantity_b, rowID=3),
+			Bitmap(frame=lo_quantity_b, rowID=4),
+			Bitmap(frame=lo_quantity_b, rowID=5),
+			Bitmap(frame=lo_quantity_b, rowID=6),
+			Bitmap(frame=lo_quantity_b, rowID=7),
+			Bitmap(frame=lo_quantity_b, rowID=8),
+			Bitmap(frame=lo_quantity_b, rowID=9),
+			Bitmap(frame=lo_quantity_b, rowID=10),
+			Bitmap(frame=lo_quantity_b, rowID=11),
+			Bitmap(frame=lo_quantity_b, rowID=12),
+			Bitmap(frame=lo_quantity_b, rowID=13),
+			Bitmap(frame=lo_quantity_b, rowID=14),
+			Bitmap(frame=lo_quantity_b, rowID=15),
+			Bitmap(frame=lo_quantity_b, rowID=16),
+			Bitmap(frame=lo_quantity_b, rowID=17),
+			Bitmap(frame=lo_quantity_b, rowID=18),
+			Bitmap(frame=lo_quantity_b, rowID=19),
+			Bitmap(frame=lo_quantity_b, rowID=20),
+			Bitmap(frame=lo_quantity_b, rowID=21),
+			Bitmap(frame=lo_quantity_b, rowID=22),
+			Bitmap(frame=lo_quantity_b, rowID=23),
+			Bitmap(frame=lo_quantity_b, rowID=24))
+	),
+frame="lo_revenue_computed", field="lo_revenue_computed")`,
+			[][]int{years},
+		)
+
+	case "1.2b":
+		years := []int{1994}
+		qs = NewQuerySet(
+			"1.2b",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=6),
+		Bitmap(frame="lo_month", rowID=0),
+		Union(
+			Bitmap(frame=lo_discount_b, rowID=4),
+			Bitmap(frame=lo_discount_b, rowID=5),
+			Bitmap(frame=lo_discount_b, rowID=6)),
+		Union(
+			Bitmap(frame=lo_quantity_b, rowID=26),
+			Bitmap(frame=lo_quantity_b, rowID=27),
+			Bitmap(frame=lo_quantity_b, rowID=28),
+			Bitmap(frame=lo_quantity_b, rowID=29),
+			Bitmap(frame=lo_quantity_b, rowID=30),
+			Bitmap(frame=lo_quantity_b, rowID=31),
+			Bitmap(frame=lo_quantity_b, rowID=32),
+			Bitmap(frame=lo_quantity_b, rowID=33),
+			Bitmap(frame=lo_quantity_b, rowID=34),
+			Bitmap(frame=lo_quantity_b, rowID=35),
+			Bitmap(frame=lo_quantity_b, rowID=36))
+	),
+frame="lo_revenue_computed", field="lo_revenue_computed")`,
+			[][]int{years},
+		)
+
+	case "1.3b":
+		years := []int{1994}
+		qs = NewQuerySet(
+			"1.3b",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_weeknum", rowID=6),
+		Bitmap(frame="lo_year", rowID=2),
+		Union(
+			Bitmap(frame=lo_discount_b, rowID=5),
+			Bitmap(frame=lo_discount_b, rowID=6),
+			Bitmap(frame=lo_discount_b, rowID=7)),
+		Union(
+			Bitmap(frame=lo_quantity_b, rowID=26),
+			Bitmap(frame=lo_quantity_b, rowID=27),
+			Bitmap(frame=lo_quantity_b, rowID=28),
+			Bitmap(frame=lo_quantity_b, rowID=29),
+			Bitmap(frame=lo_quantity_b, rowID=30),
+			Bitmap(frame=lo_quantity_b, rowID=31),
+			Bitmap(frame=lo_quantity_b, rowID=32),
+			Bitmap(frame=lo_quantity_b, rowID=33),
+			Bitmap(frame=lo_quantity_b, rowID=34),
+			Bitmap(frame=lo_quantity_b, rowID=35),
+			Bitmap(frame=lo_quantity_b, rowID=36))
+	),
+frame="lo_revenue_computed", field="lo_revenue_computed")`,
+			[][]int{years},
+		)
+
 	case "1.1c":
 		years := []int{1993}
 		qs = NewQuerySet(

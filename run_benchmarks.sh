@@ -2,6 +2,9 @@
 curl localhost:8000/query/1.1
 curl localhost:8000/query/1.2
 curl localhost:8000/query/1.3
+curl localhost:8000/query/1.1b
+curl localhost:8000/query/1.2b
+curl localhost:8000/query/1.3b
 curl localhost:8000/query/1.1c
 curl localhost:8000/query/1.2c
 curl localhost:8000/query/1.3c
