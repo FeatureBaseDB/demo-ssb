@@ -166,9 +166,13 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 
 	timestamp := int32(time.Now().Unix())
 	fname := fmt.Sprintf("results/%v-%v.txt", qs.Name, timestamp)
+	err := os.MkdirAll("results", 0700)
+	if err != nil {
+		fmt.Printf("creating results directory: %v\n", err)
+	}
 	f, err := os.Create(fname)
 	if err != nil {
-		fmt.Printf("creating results file: %v", err)
+		fmt.Printf("creating results file: %v\n", err)
 	} else {
 		defer f.Close()
 		nn := 0
@@ -176,7 +180,7 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 			n, err := f.WriteString(fmt.Sprintf("%v\n", res))
 			nn += n
 			if err != nil {
-				fmt.Printf("writing results file: %v", err)
+				fmt.Printf("writing results file: %v\n", err)
 				break
 			}
 		}
