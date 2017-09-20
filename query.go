@@ -132,13 +132,12 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 		qBatch := ""
 		batchCount := 0
 		for n := 0; n < qs.iterations; n++ {
-			if batchCount < batchSize {
-				qBatch += qs.QueryN(n)
-				// for sorting need this:
-				// qrs[n] = qs.QueryResultN(n)
-				// qBatch += qrs[n].raw
-				batchCount++
-			} else {
+			qBatch += qs.QueryN(n)
+			// for sorting need this:
+			// qrs[n] = qs.QueryResultN(n)
+			// qBatch += qrs[n].raw
+			batchCount++
+			if batchCount == batchSize {
 				queries <- qBatch
 				batchCount = 0
 				qBatch = ""
