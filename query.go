@@ -24,6 +24,7 @@ func arange(start, stop, step int) []int {
 func UnravelIndex(index1 int, dim []int) []int {
 	// Used to "vectorize" arbitrarily deep for-loops, similar to numpy.unravel_index.
 	// indexN[0] cycles the fastest, indexN[N-1] cycles the slowest.
+	// Similar in purpose to an N-dimensional iterator, but stateless.
 	// Example:
 	// A 3D array of dimensions (`dim`) = (5, 4, 3) has 5*4*3 = 60 elements,
 	// which are indexed in 1D (`index1`) as [0:59],
@@ -58,6 +59,8 @@ type QuerySet struct {
 	Name       string
 	Format     string
 	ArgSets    [][]int
+	setup      string
+	teardown   string
 	dim        int
 	iterations int
 	lengths    []int
@@ -92,6 +95,13 @@ func NewQuerySet(name, fmt string, argsets [][]int) QuerySet {
 	qs.iterations = iterations
 	qs.lengths = lens
 
+	return qs
+}
+
+func NewRegisterQuerySet(name, fmt, setup, teardown string, argsets [][]int) QuerySet {
+	qs := NewQuerySet(name, fmt, argsets)
+	qs.setup = setup
+	qs.teardown = teardown
 	return qs
 }
 
@@ -167,9 +177,18 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 		close(queries)
 	}()
 
+	start := time.Now()
+	// Run setup query.
+	if qs.setup != "" {
+		_, err := s.Client.Query(s.Index.RawQuery(qs.setup), nil)
+		if err != nil {
+			fmt.Printf("error in setup: %v\n", err)
+			return BenchmarkResult{qs.Name, 0, 0, 0, -1, 0, timestamp}
+		}
+	}
+
 	// Start workers.
 	var wg = &sync.WaitGroup{}
-	start := time.Now()
 	for n := 0; n < concurrency; n++ {
 		wg.Add(1)
 		go func() {
@@ -198,6 +217,16 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 			break
 		}
 	}
+
+	// Run teardown query.
+	if qs.teardown != "" {
+		_, err := s.Client.Query(s.Index.RawQuery(qs.teardown), nil)
+		if err != nil {
+			fmt.Printf("error in teardown: %v\n", err)
+			return BenchmarkResult{qs.Name, 0, 0, 0, -1, 0, timestamp}
+		}
+	}
+
 	seconds := time.Now().Sub(start).Seconds()
 	fmt.Printf("wrote %d bytes to %v\n", nn, fname)
 
@@ -237,6 +266,7 @@ func (s *Server) HandleQuery(w http.ResponseWriter, r *http.Request) {
 	if s.concurrency > 0 {
 		results = []BenchmarkResult{
 			s.RunSumMultiBatch(qs, s.concurrency, s.batchSize),
+			//s.RunSumMultiBatchRegister(qs, s.concurrency, s.batchSize),
 		}
 	} else {
 		results = []BenchmarkResult{
@@ -492,6 +522,25 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	frame="lo_revenue", field="lo_revenue")`,
 			[][]int{brands, years},
 		)
+
+	case "2.1r":
+		years := arange(1992, 1999, 1) // all years
+		brands := arange(40, 80, 1)    // brands for the second manufacturer, "MFGR#12"
+		// regionID := 0  // America
+		qs = NewQuerySet(
+			"2.1",
+			`Sum(
+	Intersect(
+		Bitmap(frame="p_brand1", rowID=%d),
+		IntersectReg(
+			Bitmap(frame="lo_year", rowID=%d),
+			Bitmap(frame="s_region", rowID=0),
+		),
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{brands, years},
+		)
+
 	case "2.2":
 		years := arange(1992, 1999, 1) // all years
 		brands := arange(260, 268, 1)  // brands between MFGR#2221 and MFGR#2228 - 7th manufacturer, brands 20-27, 40*(7-1) + [20..27]
@@ -542,6 +591,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "3.1r":
 		years := arange(1992, 1998, 1)
 		nations := arange(10, 15, 1) // asia nations
+
 		qs = NewQuerySet(
 			"3.1r",
 			`Sum(
@@ -580,14 +630,14 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			"3.2r",
 			`Sum(
 	Intersect(
-		Bitmap(frame="c_city", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
 		IntersectReg(
+			Bitmap(frame="c_city", rowID=%d),
 			Bitmap(frame="s_city", rowID=%d),
-			Bitmap(frame="lo_year", rowID=%d),
 		),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
-			[][]int{cities, cities, years},
+			[][]int{years, cities, cities},
 		)
 
 	case "3.3":
@@ -635,7 +685,50 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			Bitmap(frame="p_mfgr", rowID=2),
 		)
 	),
-frame="lo_profit", field="lo_profit")`,
+	frame="lo_profit", field="lo_profit")`,
+			[][]int{nations, years},
+		)
+
+	case "4.1r":
+		years := arange(1992, 1999, 1)
+		nations := arange(0, 5, 1)
+		qs = NewQuerySet(
+			"4.1",
+			`Sum(
+	Intersect(
+		Bitmap(frame="c_nation", rowID=%d),
+		IntersectReg(
+			Bitmap(frame="lo_year", rowID=%d),
+			Bitmap(frame="s_region", rowID=0),
+			Union(
+				Bitmap(frame="p_mfgr", rowID=1),
+				Bitmap(frame="p_mfgr", rowID=2),
+			)
+		)
+	),
+	frame="lo_profit", field="lo_profit")`,
+			[][]int{nations, years},
+		)
+
+	case "4.1rb":
+		years := arange(1992, 1999, 1)
+		nations := arange(0, 5, 1)
+		qs = NewRegisterQuerySet(
+			"4.1",
+			`Sum(
+	Intersect(
+		Bitmap(frame="c_nation", rowID=%d),
+		Bitmap(frame="lo_year", rowID=%d),
+		Load(id=123)),
+	frame=lo_profit, field=lo_profit)`,
+			`Store(
+	Intersect(
+		Bitmap(frame="s_region", rowID=0),
+		Union(
+			Bitmap(frame="p_mfgr", rowID=1),
+			Bitmap(frame="p_mfgr", rowID=2),
+		)), id=41)`,
+			`Purge(id=41)`,
 			[][]int{nations, years},
 		)
 
