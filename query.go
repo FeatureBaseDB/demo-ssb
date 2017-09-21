@@ -72,6 +72,7 @@ type QueryResult struct {
 	raw     string
 	inputs  []interface{}
 	outputs []interface{}
+	err     error
 }
 
 func NewQuerySet(name, fmt string, argsets [][]int) QuerySet {
@@ -128,7 +129,7 @@ func (s *QuerySet) QueryResultN(n int) QueryResult {
 // concurrency=N, batchSize=10                -> sends concurrent batches of 10 queries
 func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) BenchmarkResult {
 	queries := make(chan string) // TODO type QueryResult
-	results := make(chan int)    // TODO type QueryResult
+	results := make(chan QueryResult)
 
 	// Create results file.
 	timestamp := int32(time.Now().Unix())
@@ -186,7 +187,11 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 	defer f.Close()
 	nn := 0
 	for res := range results {
-		n, err := f.WriteString(fmt.Sprintf("%v\n", res))
+		if res.err != nil {
+			fmt.Printf("running query: %v\n", res.err)
+			return BenchmarkResult{qs.Name, 0, 0, 0, -1, 0, timestamp}
+		}
+		n, err := f.WriteString(fmt.Sprintf("%v\n", res.outputs[0]))
 		nn += n
 		if err != nil {
 			fmt.Printf("writing results file: %v\n", err)
@@ -209,7 +214,7 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 }
 
 // runRawSumBatchQuery sends RawQueries to the cluster, then sends the Sum from each result to a result channel.
-func (s *Server) runRawSumBatchQuery(queries <-chan string, results chan<- int, wg *sync.WaitGroup) {
+func (s *Server) runRawSumBatchQuery(queries <-chan string, results chan<- QueryResult, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for q := range queries {
 		response, err := s.Client.Query(s.Index.RawQuery(q), nil)
@@ -218,10 +223,10 @@ func (s *Server) runRawSumBatchQuery(queries <-chan string, results chan<- int, 
 			if strings.Contains(err.Error(), "invalid argument value") {
 				fmt.Println("server may not support BETWEEN queries")
 			}
-			return
+			results <- QueryResult{q, []interface{}{}, []interface{}{}, err}
 		}
 		for _, res := range response.Results() {
-			results <- int(res.Sum)
+			results <- QueryResult{q, []interface{}{}, []interface{}{int(res.Sum)}, nil}
 		}
 	}
 }
