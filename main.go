@@ -140,9 +140,12 @@ func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	router.HandleFunc("/query/3.2", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/3.3", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/3.4", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/3.1r", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/3.2r", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/4.1", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/4.2", server.HandleQuery).Methods("GET")
 	router.HandleFunc("/query/4.3", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/query/4.3r", server.HandleQuery).Methods("GET")
 
 	pilosaURI, err := pilosa.NewURIFromAddress(pilosaAddr)
 	if err != nil {

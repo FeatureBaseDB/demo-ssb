@@ -23,6 +23,7 @@ func arange(start, stop, step int) []int {
 // UnravelIndex generates an N-dimensional index from a 1-dimensional index.
 func UnravelIndex(index1 int, dim []int) []int {
 	// Used to "vectorize" arbitrarily deep for-loops, similar to numpy.unravel_index.
+	// indexN[0] cycles the fastest, indexN[N-1] cycles the slowest.
 	// Example:
 	// A 3D array of dimensions (`dim`) = (5, 4, 3) has 5*4*3 = 60 elements,
 	// which are indexed in 1D (`index1`) as [0:59],
@@ -530,6 +531,23 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 			[][]int{nations, nations, years},
 		)
 
+	case "3.1r":
+		years := arange(1992, 1998, 1)
+		nations := arange(10, 15, 1) // asia nations
+		qs = NewQuerySet(
+			"3.1r",
+			`Sum(
+	Intersect(
+		Bitmap(frame="lo_year", rowID=%d),
+		IntersectReg(
+			Bitmap(frame="c_nation", rowID=%d),
+			Bitmap(frame="s_nation", rowID=%d),
+		),
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{years, nations, nations},
+		)
+
 	case "3.2":
 		years := arange(1992, 1998, 1)
 		nationID := nations["UNITED STATES"]
@@ -541,6 +559,24 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		Bitmap(frame="c_city", rowID=%d),
 		Bitmap(frame="s_city", rowID=%d),
 		Bitmap(frame="lo_year", rowID=%d),
+	),
+	frame="lo_revenue", field="lo_revenue")`,
+			[][]int{cities, cities, years},
+		)
+
+	case "3.2r":
+		years := arange(1992, 1998, 1)
+		nationID := nations["UNITED STATES"]
+		cities := arange(nationID*10, nationID*10+10, 1)
+		qs = NewQuerySet(
+			"3.2r",
+			`Sum(
+	Intersect(
+		Bitmap(frame="c_city", rowID=%d),
+		IntersectReg(
+			Bitmap(frame="s_city", rowID=%d),
+			Bitmap(frame="lo_year", rowID=%d),
+		),
 	),
 	frame="lo_revenue", field="lo_revenue")`,
 			[][]int{cities, cities, years},
@@ -628,6 +664,26 @@ frame="lo_profit", field="lo_profit")`,
 frame="lo_profit", field="lo_profit")`,
 			[][]int{brands, cities, years},
 		)
+
+	case "4.3r":
+		years := []int{1997, 1998}
+		cities := arange(30, 40, 1)
+		brands := arange(120, 160, 1)
+		qs = NewQuerySet(
+			"4.3r",
+			`Sum(
+	Intersect(
+		Bitmap(frame="p_brand1", rowID=%d),
+		IntersectReg(
+			Bitmap(frame="lo_year", rowID=%d),
+			Bitmap(frame="s_city", rowID=%d),
+			Bitmap(frame="c_region", rowID=0),
+		),
+	),
+frame="lo_profit", field="lo_profit")`,
+			[][]int{brands, years, cities},
+		)
+
 	}
 
 	return qs
