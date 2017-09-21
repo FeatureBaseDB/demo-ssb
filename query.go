@@ -127,8 +127,22 @@ func (s *QuerySet) QueryResultN(n int) QueryResult {
 // concurrency=N, batchSize=1                 -> equivalent to RunSumConcurrent(N)
 // concurrency=N, batchSize=10                -> sends concurrent batches of 10 queries
 func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) BenchmarkResult {
-	queries := make(chan string)
-	results := make(chan int)
+	queries := make(chan string) // TODO type QueryResult
+	results := make(chan int)    // TODO type QueryResult
+
+	// Create results file.
+	timestamp := int32(time.Now().Unix())
+	fname := fmt.Sprintf("results/%v-%v.txt", qs.Name, timestamp)
+	err := os.MkdirAll("results", 0700)
+	if err != nil {
+		fmt.Printf("creating results directory: %v\n", err)
+		return BenchmarkResult{qs.Name, 0, 0, 0, -1, 0, timestamp}
+	}
+	f, err := os.Create(fname)
+	if err != nil {
+		fmt.Printf("creating results file: %v\n", err)
+		return BenchmarkResult{qs.Name, 0, 0, 0, -1, 0, timestamp}
+	}
 
 	// Add queries to channel
 	go func() {
@@ -169,31 +183,20 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 
 	// Write results to file.
 	// TODO needs to write query inputs as well to be more meaningful.
-	timestamp := int32(time.Now().Unix())
-	fname := fmt.Sprintf("results/%v-%v.txt", qs.Name, timestamp)
-	err := os.MkdirAll("results", 0700)
-	if err != nil {
-		fmt.Printf("creating results directory: %v\n", err)
-	}
-	f, err := os.Create(fname)
-	if err != nil {
-		fmt.Printf("creating results file: %v\n", err)
-	} else {
-		defer f.Close()
-		nn := 0
-		for res := range results {
-			n, err := f.WriteString(fmt.Sprintf("%v\n", res))
-			nn += n
-			if err != nil {
-				fmt.Printf("writing results file: %v\n", err)
-				break
-			}
+	defer f.Close()
+	nn := 0
+	for res := range results {
+		n, err := f.WriteString(fmt.Sprintf("%v\n", res))
+		nn += n
+		if err != nil {
+			fmt.Printf("writing results file: %v\n", err)
+			break
 		}
-		fmt.Printf("wrote %d bytes to %v\n", nn, fname)
 	}
+	seconds := time.Now().Sub(start).Seconds()
+	fmt.Printf("wrote %d bytes to %v\n", nn, fname)
 
 	// Return result object.
-	seconds := time.Now().Sub(start).Seconds()
 	return BenchmarkResult{
 		qs.Name,
 		qs.iterations,
