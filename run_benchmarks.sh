@@ -1,20 +1,7 @@
 #!/bin/bash
-curl localhost:8000/query/1.1
-curl localhost:8000/query/1.2
-curl localhost:8000/query/1.3
-curl localhost:8000/query/1.1b
-curl localhost:8000/query/1.2b
-curl localhost:8000/query/1.3b
-curl localhost:8000/query/1.1c
-curl localhost:8000/query/1.2c
-curl localhost:8000/query/1.3c
-curl localhost:8000/query/2.1
-curl localhost:8000/query/2.2
-curl localhost:8000/query/2.3
-curl localhost:8000/query/3.1
-curl localhost:8000/query/3.2
-curl localhost:8000/query/3.3
-curl localhost:8000/query/3.4
-curl localhost:8000/query/4.1
-curl localhost:8000/query/4.2
-curl localhost:8000/query/4.3
+# ./run_benchmarks.sh > $(date +"results/all-%Y%m%d-%H%M%S.json")
+
+names="1.1 1.2 1.3 1.1b 1.2b 1.3b 1.1c 1.2c 1.3c 2.1 2.2 2.3 3.1 3.2 3.3 3.4 4.1 4.2 4.3"
+for name in $names; do
+    curl -s localhost:8000/query/$name
+done
