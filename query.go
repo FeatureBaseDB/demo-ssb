@@ -735,6 +735,25 @@ frame="lo_profit", field="lo_profit")`,
 			[][]int{categories, nations, years},
 		)
 
+	case "4.2r":
+		years := []int{1997, 1998}
+		nations := arange(0, 5, 1)
+		categories := arange(0, 10, 1)
+		qs = NewQuerySet(
+			qname,
+			`Sum(
+	Intersect(
+		Bitmap(frame="p_category", rowID=%d),
+		IntersectReg(
+			Bitmap(frame="s_nation", rowID=%d),
+			Bitmap(frame="lo_year", rowID=%d),
+			Bitmap(frame="c_region", rowID=0),
+		),
+	),
+frame="lo_profit", field="lo_profit")`,
+			[][]int{categories, nations, years},
+		)
+
 	case "4.3":
 		years := []int{1997, 1998}
 		cities := arange(30, 40, 1)
