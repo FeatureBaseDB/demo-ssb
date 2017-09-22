@@ -202,7 +202,6 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 	// TODO sort
 
 	// Write results to file.
-	// TODO needs to write query inputs as well to be more meaningful.
 	defer f.Close()
 	nn := 0
 	for res := range results {
@@ -304,7 +303,7 @@ func getQuerySet(qname string) QuerySet {
 	case "1.1":
 		years := []int{1993}
 		qs = NewQuerySet(
-			"1.1",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
@@ -319,7 +318,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.2":
 		years := []int{1994}
 		qs = NewQuerySet(
-			"1.2",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_month", rowID=0),
@@ -336,7 +335,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.3":
 		years := []int{1994}
 		qs = NewQuerySet(
-			"1.3",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_weeknum", rowID=6),
@@ -353,7 +352,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.1b":
 		years := []int{1993}
 		qs = NewQuerySet(
-			"1.1b",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
@@ -394,7 +393,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.2b":
 		years := []int{1994}
 		qs = NewQuerySet(
-			"1.2b",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_month", rowID=0),
@@ -423,7 +422,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.3b":
 		years := []int{1994}
 		qs = NewQuerySet(
-			"1.3b",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_weeknum", rowID=6),
@@ -452,7 +451,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.1c":
 		years := []int{1993}
 		qs = NewQuerySet(
-			"1.1c",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
@@ -466,7 +465,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.2c":
 		years := []int{1994}
 		qs = NewQuerySet(
-			"1.2c",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_month", rowID=0),
@@ -481,7 +480,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "1.3c":
 		years := []int{1994}
 		qs = NewQuerySet(
-			"1.3c",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_weeknum", rowID=6),
@@ -498,7 +497,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		brands := arange(40, 80, 1)    // brands for the second manufacturer, "MFGR#12"
 		// regionID := 0  // America
 		qs = NewQuerySet(
-			"2.1",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="p_brand1", rowID=%d),
@@ -514,7 +513,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		brands := arange(40, 80, 1)    // brands for the second manufacturer, "MFGR#12"
 		// regionID := 0  // America
 		qs = NewQuerySet(
-			"2.1",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="p_brand1", rowID=%d),
@@ -532,7 +531,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		brands := arange(260, 268, 1)  // brands between MFGR#2221 and MFGR#2228 - 7th manufacturer, brands 20-27, 40*(7-1) + [20..27]
 		// regionID := 2  // Asia
 		qs = NewQuerySet(
-			"2.2",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="p_brand1", rowID=%d),
@@ -548,7 +547,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		// brands := 260               // MFGR#2221
 		// regionID := 3               // Europe
 		qs = NewQuerySet(
-			"2.3",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
@@ -563,7 +562,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		years := arange(1992, 1998, 1)
 		nations := arange(10, 15, 1) // asia nations
 		qs = NewQuerySet(
-			"3.1",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_nation", rowID=%d),
@@ -579,7 +578,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		nations := arange(10, 15, 1) // asia nations
 
 		qs = NewQuerySet(
-			"3.1r",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
@@ -597,7 +596,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		nationID := nations["UNITED STATES"]
 		cities := arange(nationID*10, nationID*10+10, 1)
 		qs = NewQuerySet(
-			"3.2",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_city", rowID=%d),
@@ -613,7 +612,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		nationID := nations["UNITED STATES"]
 		cities := arange(nationID*10, nationID*10+10, 1)
 		qs = NewQuerySet(
-			"3.2r",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="lo_year", rowID=%d),
@@ -630,7 +629,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		years := arange(1992, 1998, 1)
 		cities := []int{181, 185}
 		qs = NewQuerySet(
-			"3.3",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_city", rowID=%d),
@@ -644,7 +643,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 	case "3.4":
 		cities := []int{181, 185}
 		qs = NewQuerySet(
-			"3.4",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_city", rowID=%d),
@@ -660,7 +659,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		years := arange(1992, 1999, 1)
 		nations := arange(0, 5, 1)
 		qs = NewQuerySet(
-			"4.1",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_nation", rowID=%d),
@@ -679,7 +678,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		years := arange(1992, 1999, 1)
 		nations := arange(0, 5, 1)
 		qs = NewQuerySet(
-			"4.1",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_nation", rowID=%d),
@@ -700,7 +699,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		years := arange(1992, 1999, 1)
 		nations := arange(0, 5, 1)
 		qs = NewRegisterQuerySet(
-			"4.1",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="c_nation", rowID=%d),
@@ -723,7 +722,7 @@ frame="lo_revenue_computed", field="lo_revenue_computed")`,
 		nations := arange(0, 5, 1)
 		categories := arange(0, 10, 1)
 		qs = NewQuerySet(
-			"4.2",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="p_category", rowID=%d),
@@ -759,7 +758,7 @@ frame="lo_profit", field="lo_profit")`,
 		cities := arange(30, 40, 1)
 		brands := arange(120, 160, 1)
 		qs = NewQuerySet(
-			"4.3",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="p_brand1", rowID=%d),
@@ -776,7 +775,7 @@ frame="lo_profit", field="lo_profit")`,
 		cities := arange(30, 40, 1)
 		brands := arange(120, 160, 1)
 		qs = NewQuerySet(
-			"4.3r",
+			qname,
 			`Sum(
 	Intersect(
 		Bitmap(frame="p_brand1", rowID=%d),
