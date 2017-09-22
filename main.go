@@ -87,32 +87,6 @@ type Server struct {
 	NumLineOrders uint64
 }
 
-func (s *Server) HandleTopN(w http.ResponseWriter, r *http.Request) {
-	// sanity check function
-	q := `TopN(frame=c_city)`
-	fmt.Println(q)
-	response, err := s.Client.Query(s.Index.RawQuery(q), nil)
-	if err != nil {
-		fmt.Printf("%v failed with: %v\n", q, err)
-		return
-	}
-	for a, b := range response.Results()[0].CountItems {
-		fmt.Printf("%v %v\n", a, b)
-	}
-}
-
-func (s *Server) HandleSum(w http.ResponseWriter, r *http.Request) {
-	// sanity check function
-	q := "Sum(frame=lo_discount, field=lo_discount)"
-	fmt.Println(q)
-	response, err := s.Client.Query(s.Index.RawQuery(q), nil)
-	if err != nil {
-		fmt.Printf("%v failed with: %v\n", q, err)
-		return
-	}
-	fmt.Printf("%v %v\n", response.Results()[0].Sum, response.Results()[0].Sum)
-}
-
 func NewServer(pilosaAddr, indexName string) (*Server, error) {
 	server := &Server{
 		Frames:      make(map[string]*pilosa.Frame),
@@ -121,35 +95,7 @@ func NewServer(pilosaAddr, indexName string) (*Server, error) {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/version", server.HandleVersion).Methods("GET")
-	router.HandleFunc("/query/topn", server.HandleTopN).Methods("GET")
-	router.HandleFunc("/query/sum", server.HandleSum).Methods("GET")
-	router.HandleFunc("/query/test", server.HandleTestQuery).Methods("GET")
-	router.HandleFunc("/query/1.1", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/1.2", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/1.3", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/1.1b", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/1.2b", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/1.3b", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/1.1c", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/1.2c", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/1.3c", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/2.1", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/2.1r", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/2.2", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/2.3", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/3.1", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/3.2", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/3.3", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/3.4", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/3.1r", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/3.2r", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/3.2rb", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/4.1", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/4.1r", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/4.1rb", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/4.2", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/4.3", server.HandleQuery).Methods("GET")
-	router.HandleFunc("/query/4.3r", server.HandleQuery).Methods("GET")
+	router.HandleFunc("/{qtype}/{qname}", server.HandleQuery).Methods("GET")
 
 	pilosaURI, err := pilosa.NewURIFromAddress(pilosaAddr)
 	if err != nil {

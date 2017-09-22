@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 	"time"
 )
@@ -261,46 +261,28 @@ func (s *Server) runRawSumBatchQuery(queries <-chan string, results chan<- Query
 }
 
 func (s *Server) HandleQuery(w http.ResponseWriter, r *http.Request) {
-	qs := getQuerySet(r.URL.Path)
+	fmt.Printf("handling %v\n", r.URL.Path)
+	vars := mux.Vars(r)
+	qname, qtype := vars["qname"], vars["qtype"]
+
+	qs := getQuerySet(qname)
 	var results []BenchmarkResult
-	if s.concurrency > 0 {
+	if qtype == "query" {
 		results = []BenchmarkResult{
 			s.RunSumMultiBatch(qs, s.concurrency, s.batchSize),
-			//s.RunSumMultiBatchRegister(qs, s.concurrency, s.batchSize),
 		}
-	} else {
-		results = []BenchmarkResult{
-			s.RunSumMultiBatch(qs, 1, 1),
-			s.RunSumMultiBatch(qs, 1, 2),
-			s.RunSumMultiBatch(qs, 1, 4),
-			s.RunSumMultiBatch(qs, 1, 8),
-			s.RunSumMultiBatch(qs, 1, 16),
-			s.RunSumMultiBatch(qs, 2, 1),
-			s.RunSumMultiBatch(qs, 2, 2),
-			s.RunSumMultiBatch(qs, 2, 4),
-			s.RunSumMultiBatch(qs, 2, 8),
-			s.RunSumMultiBatch(qs, 2, 16),
-			s.RunSumMultiBatch(qs, 4, 1),
-			s.RunSumMultiBatch(qs, 4, 2),
-			s.RunSumMultiBatch(qs, 4, 4),
-			s.RunSumMultiBatch(qs, 4, 8),
-			s.RunSumMultiBatch(qs, 4, 16),
-			s.RunSumMultiBatch(qs, 8, 1),
-			s.RunSumMultiBatch(qs, 8, 2),
-			s.RunSumMultiBatch(qs, 8, 4),
-			s.RunSumMultiBatch(qs, 8, 8),
-			s.RunSumMultiBatch(qs, 8, 16),
-			s.RunSumMultiBatch(qs, 16, 1),
-			s.RunSumMultiBatch(qs, 16, 2),
-			s.RunSumMultiBatch(qs, 16, 4),
-			s.RunSumMultiBatch(qs, 16, 8),
-			s.RunSumMultiBatch(qs, 16, 16),
-			s.RunSumMultiBatch(qs, 32, 1),
-			s.RunSumMultiBatch(qs, 32, 2),
-			s.RunSumMultiBatch(qs, 32, 4),
-			s.RunSumMultiBatch(qs, 32, 8),
-			s.RunSumMultiBatch(qs, 32, 16),
+	} else if qtype == "grid" {
+		concurrency := []int{8, 16, 32}
+		batchSize := []int{2, 4, 8}
+		for _, c := range concurrency {
+			for _, b := range batchSize {
+				results = append(results, s.RunSumMultiBatch(qs, c, b))
+			}
 		}
+		//	} else if qtype == "register" {
+		//		results = []BenchmarkResult{
+		//			s.RunSumMultiBatchRegister(qs, s.concurrency, s.batchSize),
+		//		}
 	}
 
 	enc := json.NewEncoder(w)
@@ -310,10 +292,8 @@ func (s *Server) HandleQuery(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getQuerySet(q string) QuerySet {
+func getQuerySet(qname string) QuerySet {
 	var qs QuerySet
-	qname := strings.Split(q, "/")[2]
-	fmt.Printf("defining QuerySet for %v (%v)\n", qname, q)
 	switch qname {
 	case "1.1":
 		years := []int{1993}
@@ -788,30 +768,4 @@ frame="lo_profit", field="lo_profit")`,
 	}
 
 	return qs
-}
-
-func (s *Server) HandleTestQuery(w http.ResponseWriter, r *http.Request) {
-	qs := NewQuerySet(
-		"test",
-		`Sum(
-	Intersect(
-		Bitmap(frame="lo_year", rowID=%d),
-		Bitmap(frame="p_brand1", rowID=%d),
-		Bitmap(frame="s_region", rowID=%d),
-	),
-	frame="lo_revenue", field="lo_revenue")`,
-		[][]int{
-			[]int{1992, 1993, 1994, 1995, 1996, 1997},
-			[]int{0, 1, 2, 3},
-			[]int{0, 1, 2},
-		},
-	)
-
-	result := s.RunSumMultiBatch(qs, s.concurrency, s.batchSize)
-	enc := json.NewEncoder(w)
-	err := enc.Encode(result)
-	if err != nil {
-		fmt.Printf("writing results: %v to responsewriter: %v", result, err)
-	}
-
 }
