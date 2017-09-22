@@ -138,7 +138,7 @@ func (s *QuerySet) QueryResultN(n int) QueryResult {
 // concurrency=N, batchSize=1                 -> equivalent to RunSumConcurrent(N)
 // concurrency=N, batchSize=10                -> sends concurrent batches of 10 queries
 func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) BenchmarkResult {
-	queries := make(chan string) // TODO type QueryResult
+	batches := make(chan []QueryResult)
 	results := make(chan QueryResult)
 
 	// Create results file.
@@ -157,24 +157,24 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 
 	// Add queries to channel
 	go func() {
-		qBatch := ""
+		// qRawBatch := ""
+		qBatch := make([]QueryResult, 0, batchSize)
 		batchCount := 0
 		for n := 0; n < qs.iterations; n++ {
-			qBatch += qs.QueryN(n)
-			// for sorting need this:
-			// qrs[n] = qs.QueryResultN(n)
-			// qBatch += qrs[n].raw
+			qq := qs.QueryResultN(n)
+			qBatch = append(qBatch, qq)
+
 			batchCount++
 			if batchCount == batchSize {
-				queries <- qBatch
+				batches <- qBatch
 				batchCount = 0
-				qBatch = ""
+				qBatch = make([]QueryResult, 0, batchSize)
 			}
 		}
-		if qBatch != "" {
-			queries <- qBatch
+		if batchCount > 0 {
+			batches <- qBatch
 		}
-		close(queries)
+		close(batches)
 	}()
 
 	start := time.Now()
@@ -192,7 +192,7 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 	for n := 0; n < concurrency; n++ {
 		wg.Add(1)
 		go func() {
-			s.runRawSumBatchQuery(queries, results, wg)
+			s.runRawSumBatchQuery(batches, results, wg)
 		}()
 	}
 	go func() {
@@ -210,7 +210,7 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 			fmt.Printf("running query: %v\n", res.err)
 			return BenchmarkResult{qs.Name, 0, 0, 0, -1, 0, timestamp}
 		}
-		n, err := f.WriteString(fmt.Sprintf("%v\n", res.outputs[0]))
+		n, err := f.WriteString(fmt.Sprintf("%v %v\n", res.outputs[0], res.inputs))
 		nn += n
 		if err != nil {
 			fmt.Printf("writing results file: %v\n", err)
@@ -243,19 +243,25 @@ func (s *Server) RunSumMultiBatch(qs QuerySet, concurrency, batchSize int) Bench
 }
 
 // runRawSumBatchQuery sends RawQueries to the cluster, then sends the Sum from each result to a result channel.
-func (s *Server) runRawSumBatchQuery(queries <-chan string, results chan<- QueryResult, wg *sync.WaitGroup) {
+func (s *Server) runRawSumBatchQuery(batches <-chan []QueryResult, results chan<- QueryResult, wg *sync.WaitGroup) {
+	// Receives batches of queries as []QueryResult. Each slice is compiled into a
+	// a raw batch query, a single request is sent, and the results are collated
+	// with the input []QueryResult, then sent back on the results channel one at a time.
 	defer wg.Done()
-	for q := range queries {
-		response, err := s.Client.Query(s.Index.RawQuery(q), nil)
-		if err != nil {
-			fmt.Printf("in runRawSumBatchQuery: %vfailed with: %v\n", q, err)
-			if strings.Contains(err.Error(), "invalid argument value") {
-				fmt.Println("server may not support BETWEEN queries")
-			}
-			results <- QueryResult{q, []interface{}{}, []interface{}{}, err}
+	for batch := range batches {
+		raw := ""
+		for _, q := range batch {
+			raw += q.raw
 		}
-		for _, res := range response.Results() {
-			results <- QueryResult{q, []interface{}{}, []interface{}{int(res.Sum)}, nil}
+		response, err := s.Client.Query(s.Index.RawQuery(raw), nil)
+
+		if err != nil {
+			fmt.Printf("in runRawSumBatchQuery: %vfailed with: %v\n", raw, err)
+			results <- QueryResult{raw, []interface{}{}, []interface{}{}, err}
+		}
+		for n, res := range response.Results() {
+			batch[n].outputs = []interface{}{int(res.Sum)}
+			results <- batch[n]
 		}
 	}
 }
