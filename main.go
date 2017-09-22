@@ -160,8 +160,11 @@ func (s *Server) getLineOrderCount() uint64 {
 	var count uint64 = 0
 	for n := 0; n < 5; n++ {
 		q := s.Index.Count(s.Frames["p_mfgr"].Bitmap(uint64(n)))
-		response, _ := s.Client.Query(q, nil)
-		fmt.Printf("%+v\n", response.Result())
+		response, err := s.Client.Query(q, nil)
+		if err != nil {
+			fmt.Printf("in getLineOrderCount: %v\n", err)
+			return 666
+		}
 		count += response.Result().Count
 	}
 	return count
