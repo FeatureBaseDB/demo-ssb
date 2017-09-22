@@ -161,6 +161,7 @@ func (s *Server) getLineOrderCount() uint64 {
 	for n := 0; n < 5; n++ {
 		q := s.Index.Count(s.Frames["p_mfgr"].Bitmap(uint64(n)))
 		response, _ := s.Client.Query(q, nil)
+		fmt.Printf("%+v\n", response.Result())
 		count += response.Result().Count
 	}
 	return count
